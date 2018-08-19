@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{5B5C354F-C9AC-4D28-8A64-61666DDF1365}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Utilities</RootNamespace>
     <AssemblyName>Utilities</AssemblyName>
@@ -38,8 +38,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>
-    </StartupObject>
+    <StartupObject>Utilities.IniReader</StartupObject>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -89,6 +88,7 @@
     <Compile Include="Excel\ExcelImporter.cs" />
     <Compile Include="Excel\ExcelReaderFactory.cs" />
     <Compile Include="FileLockInfo.cs" />
+    <Compile Include="IniConfigurationUI.cs" />
     <Compile Include="IniWriter.cs" />
     <Compile Include="Interfaces\IExcelReader.cs" />
     <Compile Include="Interfaces\IExcelReaderFactory.cs" />
@@ -138,6 +138,12 @@
     <Compile Include="UI\PairColorPicker.Designer.cs">
       <DependentUpon>PairColorPicker.cs</DependentUpon>
     </Compile>
+    <Compile Include="UI\SaveConfigurationTemplateForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\SaveConfigurationTemplateForm.Designer.cs">
+      <DependentUpon>SaveConfigurationTemplateForm.cs</DependentUpon>
+    </Compile>
     <Compile Include="UI\SDLMMControl.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -150,40 +156,25 @@
     <Compile Include="Locked.cs" />
     <Compile Include="Locker.cs" />
     <Compile Include="Parallelx.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Server\MediaServerInstance.cs" />
     <Compile Include="Server\OnServerConnectionEventArgs.cs" />
     <Compile Include="Server\ServerHolder.cs" />
-    <EmbeddedResource Include="Properties\Resources.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <Compile Include="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-      <DesignTime>True</DesignTime>
-    </Compile>
     <EmbeddedResource Include="UI\InputBox.resx">
       <DependentUpon>InputBox.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="UI\PairColorPicker.resx">
       <DependentUpon>PairColorPicker.cs</DependentUpon>
     </EmbeddedResource>
-    <None Include="Properties\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
-    </None>
-    <Compile Include="Properties\Settings.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-    </Compile>
+    <EmbeddedResource Include="UI\SaveConfigurationTemplateForm.resx">
+      <DependentUpon>SaveConfigurationTemplateForm.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

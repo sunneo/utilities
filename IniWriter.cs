@@ -13,7 +13,7 @@ namespace Utilities
         volatile bool bIsDisposed=false;
         List<String> Lines = new List<string>();
         public String FileName;
-        
+        public Dictionary<String, Object> GivenValue = new Dictionary<string, object>();
         public static IniWriter Open(String file,bool appendFile=false)
         {
             IniWriter writer = new IniWriter();
@@ -110,6 +110,10 @@ namespace Utilities
                     var fieldType = field.FieldType;
                     String name = prefix + field.Name;
                     object val = field.GetValue(ret);
+                    if (GivenValue!=null && GivenValue.ContainsKey(name))
+                    {
+                        val = GivenValue[name];
+                    }
                     if (fieldType.IsPrimitive)
                     {
                       

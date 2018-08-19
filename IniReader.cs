@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace Utilities
 {
@@ -44,9 +47,49 @@ namespace Utilities
                 );
 
         }
+        public class ExampleClass2
+        {
+            public class InnerClass
+            {
+                public String StringField;
+                public int IntField;
+                public int IntField2;
+                public double DoubleField;
+                public Color colorField;
+            }
+            public InnerClass InnerClassField;
+            public String StringField;
+            public int IntField;
+            public double DoubleField;
+
+            [Category("不知道什麼類別")]
+            public Color colorField;
+
+            [Category("不知道什麼類別")]
+            public Size SizeField;
+
+            [Category("不知道什麼類別")]
+            public Rectangle RectangleField;
+
+            [Category("不知道什麼類別")]
+            public Point PointField;
+        }
+        [STAThread]
+        public static void Test2()
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            IniConfigurationUI<ExampleClass2> ui = new IniConfigurationUI<ExampleClass2>("test.ini");
+            Application.Run(ui.BuildForm());
+        }
+
+        public static void Main2()
+        {
+            Test2();
+        }
         public static void Main()
         {
-            Test();
+            Main2();
         }
         public Dictionary<String, List<String>> Data = new Dictionary<string, List<String>>();
 
@@ -124,31 +167,50 @@ namespace Utilities
         {
 
         }
-        public static void DeserializeFields(IniReader reader, object ret,String prefix="")
+        public class OnSerializeNotificationEventArgs
+        {
+            public IniReader Reader;
+            public FieldInfo Field;
+            public String FullName;
+            public Object Target;
+            public Object FieldValue;
+        }
+        public static void DeserializeFields(IniReader reader, object ret, String prefix = "", EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
         {
             Type t = ret.GetType();
+            
             foreach (var field in t.GetFields())
             {
+                Object FieldValue = null;
+                OnSerializeNotificationEventArgs OnSerializeArgs = new OnSerializeNotificationEventArgs();
+                OnSerializeArgs.Reader = reader;
+                OnSerializeArgs.Field = field;
+                OnSerializeArgs.Target = ret;
+                
                 if (field.IsPublic)
                 {
                     var fieldType = field.FieldType;
                     String name = prefix + field.Name;
+                    OnSerializeArgs.FullName = name;
                     if (fieldType.IsPrimitive)
                     {
                         if (fieldType == typeof(int))
                         {
                             object val = reader.GetInt(name);
                             field.SetValue(ret, val);
+                            FieldValue = val;
                         }
                         else if (fieldType == typeof(bool))
                         {
                             object val = reader.GetBoolean(name);
                             field.SetValue(ret, val);
+                            FieldValue = val;
                         }
                         else if (fieldType == typeof(double))
                         {
                             object val = reader.GetDouble(name);
                             field.SetValue(ret, val);
+                            FieldValue = val;
                         }
                         
                         
@@ -157,12 +219,14 @@ namespace Utilities
                     {
                         object val = reader.GetString(name);
                         field.SetValue(ret, val);
+                        FieldValue = val;
                     }
                     else if (fieldType == typeof(int[]))
                     {
                         String val = reader.GetString(name);
                         List<int> intList = IntListFromString(val);
                         field.SetValue(ret, intList.ToArray());
+                        FieldValue = intList.ToArray();
                     }
                     else if (fieldType == typeof(Color))
                     {
@@ -178,14 +242,18 @@ namespace Utilities
                             r = intList[1];
                             g = intList[2];
                             b = intList[3];
-                            field.SetValue(ret, Color.FromArgb(a, r, g, b));
+                            Color clrVal=Color.FromArgb(a, r, g, b);
+                            field.SetValue(ret, clrVal);
+                            FieldValue = clrVal;
                         }
                         else if (intList.Count == 3)
                         {
                             r = intList[0];
                             g = intList[1];
                             b = intList[2];
-                            field.SetValue(ret, Color.FromArgb(255, r, g, b));
+                            Color clrVal = Color.FromArgb(255, r, g, b);
+                            field.SetValue(ret, clrVal);
+                            FieldValue = clrVal;
                         }
                     }
                     else if (fieldType == typeof(Size))
@@ -200,6 +268,7 @@ namespace Utilities
                             h = intList[1];
                             field.SetValue(ret, new Size(w, h));
                         }
+                        FieldValue = val;
                     }
                     else if (fieldType == typeof(Rectangle))
                     {
@@ -217,6 +286,7 @@ namespace Utilities
                             h = intList[3];
                             field.SetValue(ret, new Rectangle(x, y, w, h));
                         }
+                        FieldValue = val;
                     }
                     else if (fieldType == typeof(Point))
                     {
@@ -230,6 +300,7 @@ namespace Utilities
                             y = intList[1];
                             field.SetValue(ret, new Point(x, y));
                         }
+                        FieldValue = val;
                     }
                     else if(fieldType.IsClass)
                     {
@@ -244,32 +315,37 @@ namespace Utilities
                                 field.SetValue(ret, fieldContent);
                             }
                         }
-                        
-                        
+
+                        FieldValue = fieldContent;
                         if(fieldContent != null)
                         {
-                            DeserializeFields(reader, fieldContent, field.Name + ".");
+                            DeserializeFields(reader, fieldContent, field.Name + ".", OnSerializingMember);
                         }
+                    }
+                    OnSerializeArgs.FieldValue = FieldValue;
+                    if (OnSerializingMember != null)
+                    {
+                        OnSerializingMember(reader, OnSerializeArgs);
                     }
                 }
             }
         }
-        public static T Deserialize<T>(String filename)
+        public static T Deserialize<T>(String filename, EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
         {
             IniReader reader = IniReader.FromFile(filename);
             Type t = typeof(T) ;
             var constructor = t.GetConstructor(new Type[] { });
             T ret = (T)constructor.Invoke(new object[] { });
-            DeserializeFields(reader, ret);
+            DeserializeFields(reader, ret,"",OnSerializingMember);
             return ret;
         }
-        public static T DeserializeString<T>(String stringContent)
+        public static T DeserializeString<T>(String stringContent, EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
         {
             IniReader reader = IniReader.FromString(stringContent);
             Type t = typeof(T);
             var constructor = t.GetConstructor(new Type[] { });
             T ret = (T)constructor.Invoke(new object[] { });
-            DeserializeFields(reader, ret);
+            DeserializeFields(reader, ret, "", OnSerializingMember);
             return ret;
         }
         public static List<int> IntListFromString(String val)
