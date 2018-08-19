@@ -25,14 +25,18 @@ namespace Utilities
         {
             this.TargetFileName = filename;
         }
-        public Form BuildForm()
+        public Form BuildForm(String title="")
         {
             UI.SaveConfigurationTemplateForm ret = new UI.SaveConfigurationTemplateForm();
             DataFieldControl.Clear();
             
             this.Value = IniReader.Deserialize<T>(this.TargetFileName,HandleDeserializeField);
             List<GroupBox> groupBoxs = new List<GroupBox>();
-            
+            if (String.IsNullOrEmpty(title))
+            {
+                title = this.TargetFileName;
+            }
+            ret.Text = title;
             foreach (String g in FieldCategoryMap.Keys)
             {
                 GroupBox gbox = new GroupBox();
@@ -278,7 +282,7 @@ namespace Utilities
             var attr = GetAttribute<DisplayNameAttribute>(memberInfo,false);
             if (attr == null)
             {
-                return memberInfo.Name;
+                return "";
             }
 
             return attr.DisplayName;
