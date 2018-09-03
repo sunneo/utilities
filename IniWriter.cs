@@ -84,6 +84,20 @@ namespace Utilities
             }
             this.Write(key, strb.ToString());
         }
+        public void Write(String key, double[] val)
+        {
+            StringBuilder strb = new StringBuilder();
+            for (int i = 0; i < val.Length; ++i)
+            {
+                String v = val[i].ToString();
+                strb.Append(v);
+                if (i + 1 < val.Length)
+                {
+                    strb.Append(',');
+                }
+            }
+            this.Write(key, strb.ToString());
+        }
         public void Write(String key, Point val)
         {
             this.Write(key,val.ToIntArray());
@@ -103,70 +117,105 @@ namespace Utilities
         private void SerializeObject(object ret, String prefix)
         {
             Type t = ret.GetType();
+            if (t == typeof(DBNull)) return;
             foreach (var field in t.GetFields())
             {
-                if (field.IsPublic)
+                try
                 {
-                    var fieldType = field.FieldType;
-                    String name = prefix + field.Name;
-                    object val = field.GetValue(ret);
-                    if (GivenValue!=null && GivenValue.ContainsKey(name))
+
+                    if (field.IsSpecialName) continue;
+
+                    if (field.IsPublic)
                     {
-                        val = GivenValue[name];
-                    }
-                    if (fieldType.IsPrimitive)
-                    {
-                      
-                        if (fieldType == typeof(int))
+                        var fieldType = field.FieldType;
+                        if (fieldType == typeof(DBNull)) continue;
+                        String name = prefix + field.Name;
+                        object val = field.GetValue(ret);
+                        if (GivenValue != null && GivenValue.ContainsKey(name))
                         {
-                            Write(name, (int)val);
+                            val = GivenValue[name];
                         }
-                        else if (fieldType == typeof(bool))
+                        if (fieldType.IsPrimitive)
                         {
-                            Write(name, (bool)val);
+
+                            if (fieldType == typeof(int))
+                            {
+                                Write(name, (int)val);
+                            }
+                            else if (fieldType == typeof(bool))
+                            {
+                                Write(name, (bool)val);
+                            }
+                            else if (fieldType == typeof(double))
+                            {
+                                Write(name, (double)val);
+                            }
                         }
-                        else if (fieldType == typeof(double))
+                        else if (fieldType == typeof(string))
                         {
-                            Write(name, (double)val);
+                            Write(name, (String)val);
                         }
-                    }
-                    else if (fieldType == typeof(string))
-                    {
-                        Write(name, (String)val);
-                    }
-                    else if (fieldType == typeof(int[]))
-                    {
-                        Write(name, (int[])val);
-                    }
-                    else if (fieldType == typeof(Color))
-                    {
-                        Write(name, (Color)val);
-                    }
-                    else if (fieldType == typeof(Size))
-                    {
-                        Write(name, (Size)val);
-                    }
-                    else if (fieldType == typeof(Rectangle))
-                    {
-                        Write(name, (Rectangle)val);
-                    }
-                    else if (fieldType == typeof(Point))
-                    {
-                        Write(name, (Point)val);
-                    }
-                    else if (fieldType.IsClass)
-                    {  
-                        object fieldContent = null;
-                        fieldContent = field.GetValue(ret);
-                        if (fieldContent != null)
+                        else if (fieldType == typeof(int[]))
                         {
-                            WriteComment("Class:" + fieldType.Name + Environment.NewLine+
-                                "FieldName:" + field.Name + Environment.NewLine);
-                            SerializeObject(fieldContent, field.Name + ".");
+                            Write(name, (int[])val);
+                        }
+                        else if (fieldType == typeof(double[]))
+                        {
+                            Write(name, (double[])val);
+                        }
+                        else if (fieldType == typeof(Color))
+                        {
+                            Write(name, (Color)val);
+                        }
+                        else if (fieldType == typeof(Size))
+                        {
+                            Write(name, (Size)val);
+                        }
+                        else if (fieldType == typeof(Rectangle))
+                        {
+                            Write(name, (Rectangle)val);
+                        }
+                        else if (fieldType == typeof(Point))
+                        {
+                            Write(name, (Point)val);
+                        }
+                        else if (fieldType.IsClass)
+                        {
+                            if (fieldType == typeof(Color))
+                            {
+                                Write(name, (Color)val);
+                            }
+                            else if (fieldType == typeof(Size))
+                            {
+                                Write(name, (Size)val);
+                            }
+                            else if (fieldType == typeof(Rectangle))
+                            {
+                                Write(name, (Rectangle)val);
+                            }
+                            else if (fieldType == typeof(Point))
+                            {
+                                Write(name, (Point)val);
+                            }
+                            object fieldContent = null;
+                            fieldContent = field.GetValue(ret);
+                            if (fieldContent != null)
+                            {
+                                WriteComment("Class:" + fieldType.Name + Environment.NewLine +
+                                    "FieldName:" + field.Name + Environment.NewLine);
+                                SerializeObject(fieldContent, field.Name + ".");
+                            }
                         }
                     }
                 }
+                catch (Exception ee)
+                {
+
+                }
+
             }
+
+
         }
         public void Serialize(object o)
         {

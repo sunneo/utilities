@@ -172,6 +172,10 @@ namespace Utilities
                 {
                     bgthread.Name = "AsyncThread";
                 }
+                if (IsApartmentSet)
+                {
+                    bgthread.SetApartmentState(this.apartment);
+                }
                 bgthread.IsBackground = true;
                 bgthread.Start();
                 return true;
@@ -223,6 +227,10 @@ namespace Utilities
                 else
                 {
                     bgthread.Name = "AsyncThread";
+                }
+                if (IsApartmentSet)
+                {
+                    bgthread.SetApartmentState(this.apartment);
                 }
                 bgthread.IsBackground = true;
                 bgthread.Start();
@@ -374,6 +382,14 @@ namespace Utilities
             {
                 AfterFinishJob.Clear();
             }
+        }
+
+        volatile bool IsApartmentSet = false;
+        ApartmentState apartment = ApartmentState.MTA;
+        public void SetApartment(ApartmentState apartment)
+        {
+            this.apartment = apartment;
+            IsApartmentSet = true;
         }
     }
 }

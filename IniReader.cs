@@ -221,6 +221,13 @@ namespace Utilities
                         field.SetValue(ret, val);
                         FieldValue = val;
                     }
+                    else if (fieldType == typeof(double[]))
+                    {
+                        String val = reader.GetString(name);
+                        List<double> intList = DoubleListFromString(val);
+                        field.SetValue(ret, intList.ToArray());
+                        FieldValue = intList.ToArray();
+                    }
                     else if (fieldType == typeof(int[]))
                     {
                         String val = reader.GetString(name);
@@ -373,6 +380,32 @@ namespace Utilities
                 return list;
             }
             return new List<int>();
+        }
+        public static List<double> DoubleListFromString(String val)
+        {
+            if (val.IndexOf(',') > -1)
+            {
+                String[] splits = val.Split(',');
+                List<double> list = new List<double>();
+                for (int i = 0; i < splits.Length; ++i)
+                {
+                    String s = splits[i];
+                    if (!String.IsNullOrEmpty(s))
+                    {
+                        double ival = 0;
+                        if (double.TryParse(s, out ival))
+                        {
+                            list.Add(ival);
+                        }
+                        else
+                        {
+                            list.Add(0);
+                        }
+                    }
+                }
+                return list;
+            }
+            return new List<double>();
         }
         private void ParseStream(TextReader fs)
         {

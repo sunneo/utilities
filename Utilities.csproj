@@ -66,6 +66,9 @@
     <Reference Include="EPPlus">
       <HintPath>Lib\EPPlus.dll</HintPath>
     </Reference>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>Lib\HTMLAgility-Net40-client\HtmlAgilityPack.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -80,6 +83,7 @@
   <ItemGroup>
     <Compile Include="AsyncTask.cs" />
     <Compile Include="BinaryParsers\PEHeaderParser.cs" />
+    <Compile Include="ContentHTMLAgility.cs" />
     <Compile Include="DisposableWrapper.cs" />
     <Compile Include="DynamicAttributes.cs" />
     <Compile Include="Excel\CSVFetcher.cs" />
