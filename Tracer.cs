@@ -17,12 +17,12 @@ namespace Utilities
             {
                 String nowDate = DateTime.Now.ToString("yyyyMMdd");
                 String now = "[" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "]";
-                String path = Path.Combine("Logs", nowDate);
+                String path = Path.Combine("報告匯集", nowDate);
                 if (!Directory.Exists(path))
                 {
                     Directory.CreateDirectory(path);
                 }
-                String file = Path.Combine(path, "D.txt");
+                String file = Path.Combine(path, "XQOP錯誤報告.txt");
                 File.AppendAllText(file, now + fmt + Environment.NewLine);
             }
         }
