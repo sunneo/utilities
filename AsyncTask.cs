@@ -152,6 +152,7 @@ namespace Utilities
             {
                 IsFault = true;
                 FaultReason = ee;
+                System.Diagnostics.Debug.WriteLine(ee.ToString());
             }
         }
         private void jobFlusher()
