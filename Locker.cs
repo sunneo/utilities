@@ -11,6 +11,7 @@ namespace Utilities
     public class Locker
     {
         object lockerObj = new object();
+        object RawLocker = new object();
         public volatile Thread OwnerThread;
         bool useLock = true;
         volatile bool Entered = false;
@@ -77,113 +78,100 @@ namespace Utilities
 
         public void Synchronized(Action action)
         {
-            try
+            if (useLock)
             {
-                PerformLock(assignedTimeout);
+                lock (RawLocker)
+                {
+                    if (action != null)
+                    {
+                        action();
+                    }
+                }
+            }
+            else
+            {
                 if (action != null)
                 {
                     action();
                 }
             }
-            catch (ThreadAbortException ee)
-            {
-                PerformUnlock();
-                ForceDispose();
-            }
-            finally
-            {
-                PerformUnlock();
-            }
+            
         }
         public T Synchronized<T>(Func<T> action)
         {
-            try
+            if (useLock)
             {
-                PerformLock(assignedTimeout);
+                lock (RawLocker)
+                {
+                    return action();
+                }
+            }
+            else
+            {
                 return action();
             }
-            catch (ThreadAbortException ee)
-            {
-                PerformUnlock();
-                ForceDispose();
-                return default(T);
-            }
-            finally
-            {
-                PerformUnlock();
-            }
+            
         }
         public Tout Synchronized<T1, Tout>(Func<T1, Tout> action, T1 param)
         {
-            try
+            if (useLock)
             {
-                PerformLock(assignedTimeout);
+                lock (RawLocker)
+                {
+                    return action(param);
+                }
+            }
+            else
+            {
                 return action(param);
             }
-            catch (ThreadAbortException ee)
-            {
-                PerformUnlock();
-                ForceDispose();
-                return default(Tout);
-            }
-            finally
-            {
-                PerformUnlock();
-            }
+            
         }
         public Tout Synchronized<T1, T2, Tout>(Func<T1, T2, Tout> action, T1 param, T2 param2)
         {
-            try
+            if (useLock)
             {
-                PerformLock(assignedTimeout);
-                return action(param, param2);
+                lock (RawLocker)
+                {
+                   return action(param, param2);
+                }
             }
-            catch (ThreadAbortException ee)
+            else
             {
-                PerformUnlock();
-                ForceDispose();
-                return default(Tout);
+               return action(param, param2);
             }
-            finally
-            {
-                PerformUnlock();
-            }
+            
         }
         public Tout Synchronized<T1, T2, T3, Tout>(Func<T1, T2, T3, Tout> action, T1 param, T2 param2, T3 param3)
         {
-            try
+            if (useLock)
             {
-                PerformLock(assignedTimeout);
+                lock (RawLocker)
+                {
+                    return action(param, param2, param3);
+                }
+            }
+            else
+            {
                 return action(param, param2, param3);
             }
-            catch (ThreadAbortException ee)
-            {
-                PerformUnlock();
-                ForceDispose();
-                return default(Tout);
-            }
-            finally
-            {
-                PerformUnlock();
-            }
+
+          
         }
         public Tout Synchronized<T1, T2, T3, T4, Tout>(Func<T1, T2, T3, T4, Tout> action, T1 param, T2 param2, T3 param3, T4 param4)
         {
-            try
+            if (useLock)
             {
-                PerformLock(assignedTimeout);
+                lock (RawLocker)
+                {
+                    return action(param, param2, param3, param4);
+                }
+            }
+            else
+            {
                 return action(param, param2, param3, param4);
             }
-            catch (ThreadAbortException ee)
-            {
-                PerformUnlock();
-                ForceDispose();
-                return default(Tout);
-            }
-            finally
-            {
-                PerformUnlock();
-            }
+            
         }
         int assignedTimeout = -1;
         public Locker(bool useLock = true, int timeout = -1)
