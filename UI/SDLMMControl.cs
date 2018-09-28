@@ -10,7 +10,7 @@ using System.Windows.Forms;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 
-namespace SDLMMForm
+namespace Utilities.UI
 {
 
     public partial class SDLMMControl : UserControl
