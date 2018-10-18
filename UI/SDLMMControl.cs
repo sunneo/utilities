@@ -15,21 +15,51 @@ namespace Utilities.UI
 
     public partial class SDLMMControl : UserControl
     {
-        volatile bool mTransparent = false;
+        /// <summary> 
+        /// 設計工具所需的變數。
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
 
-        [Browsable(true)]
-        public bool Transparent
+        /// <summary> 
+        /// 清除任何使用中的資源。
+        /// </summary>
+        /// <param name="disposing">如果應該處置 Managed 資源則為 true，否則為 false。</param>
+        protected override void Dispose(bool disposing)
         {
-            get
+            if (disposing && (components != null))
             {
-                return mTransparent;
+                components.Dispose();
             }
-            set
-            {
-                mTransparent = value;
-                SetStyle(ControlStyles.SupportsTransparentBackColor, value);
-            }
+            base.Dispose(disposing);
         }
+
+        #region 元件設計工具產生的程式碼
+
+        /// <summary> 
+        /// 此為設計工具支援所需的方法 - 請勿使用程式碼編輯器
+        /// 修改這個方法的內容。
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.SuspendLayout();
+            // 
+            // SDLMMControl
+            // 
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
+            this.AutoValidate = System.Windows.Forms.AutoValidate.Disable;
+            this.CausesValidation = false;
+            this.DoubleBuffered = true;
+            this.Margin = new System.Windows.Forms.Padding(0);
+            this.Name = "SDLMMControl";
+            this.Size = new System.Drawing.Size(471, 484);
+            this.SizeChanged += new System.EventHandler(this.SDLMMControl_SizeChanged);
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        public event EventHandler Flushed;
         public class RadialGradientBrushBuilder
         {
             PointF origin = new PointF(.5f, .5f);
@@ -41,27 +71,28 @@ namespace Utilities.UI
             bool HasBlendTriangularShape = false;
             float blendTriangularFocus;
             float blendTriangularScale;
-            
+
             public RadialGradientBrushBuilder SetCenter(PointF pos)
             {
                 origin = pos;
                 return this;
             }
-            public RadialGradientBrushBuilder SetCenter(double x,double y)
+            public RadialGradientBrushBuilder SetCenter(double x, double y)
             {
-                origin = new PointF((float)x,(float)y);
+                origin = new PointF((float)x, (float)y);
                 return this;
             }
+
             public RadialGradientBrushBuilder SetFocusScale(PointF pt)
             {
                 HasFocusScales = true;
                 focusScales = pt;
                 return this;
             }
-            public RadialGradientBrushBuilder SetFocusScale(double x,double y)
+            public RadialGradientBrushBuilder SetFocusScale(double x, double y)
             {
                 HasFocusScales = true;
-                focusScales = new PointF((float)x,(float)y);
+                focusScales = new PointF((float)x, (float)y);
                 return this;
             }
             public RadialGradientBrushBuilder SetBlendTriangularShape(double focus, double scale)
@@ -83,15 +114,15 @@ namespace Utilities.UI
                 }
                 return this;
             }
-            public PathGradientBrush Build(int x,int y,int r)
+            public PathGradientBrush Build(int x, int y, int r)
             {
                 GraphicsPath gp = new GraphicsPath();
                 Rectangle rect = Rectangle.FromLTRB(x - r, y - r, x + r, y + r);
                 gp.AddEllipse(rect);
                 PathGradientBrush pgb = new PathGradientBrush(gp);
-                
-                pgb.CenterPoint = new PointF(x+rect.Width * origin.X,
-                                             y+rect.Height * origin.Y);
+
+                pgb.CenterPoint = new PointF(x + rect.Width * origin.X,
+                                             y + rect.Height * origin.Y);
                 if (centerColor == null)
                 {
                     centerColor = Color.White;
@@ -181,7 +212,7 @@ namespace Utilities.UI
         public delegate void OnMouseButtonAction(int x, int y, int btn, bool ison);
         public delegate void OnMouseMoveAction(int x, int y, int btn, bool ison);
         public delegate void OnMouseWhellAction(int x, int y, int scrollAmount);
-        public delegate void OnKeyboardAction(int keycode,bool ctrl,bool ison);
+        public delegate void OnKeyboardAction(int keycode, bool ctrl, bool ison);
         public OnMouseButtonAction onMouseClickHandler;
         public OnMouseMoveAction onMouseMoveHandler;
         public OnKeyboardAction onKeyboard;
@@ -200,8 +231,8 @@ namespace Utilities.UI
         }
         private int mouseIdx(MouseButtons btn)
         {
-            switch(btn)
-            { 
+            switch (btn)
+            {
                 default:
                 case System.Windows.Forms.MouseButtons.Left:
                     return MOUSE_LEFT;
@@ -213,7 +244,8 @@ namespace Utilities.UI
         }
         protected override void OnMouseWheel(MouseEventArgs e)
         {
-            if(onMouseWhell!= null){
+            if (onMouseWhell != null)
+            {
                 onMouseWhell(e.X, e.Y, e.Delta * SystemInformation.MouseWheelScrollLines / 120);
             }
             base.OnMouseWheel(e);
@@ -244,7 +276,7 @@ namespace Utilities.UI
         }
         protected override void OnKeyDown(KeyEventArgs e)
         {
-            if (onKeyboard!= null)
+            if (onKeyboard != null)
             {
                 onKeyboard((int)e.KeyData, e.Control, true);
             }
@@ -269,11 +301,22 @@ namespace Utilities.UI
                 SetStyle(ControlStyles.Selectable, value);
             }
         }
+        public void SetScale(double scale, double overallScale = 1)
+        {
+            mPageScale = overallScale;
+            this.graphic.PageScale = (float)scale;
+            this.graphic.ScaleTransform((float)scale, (float)scale);
+        }
+        public void SetOrigin(int x, int y)
+        {
+
+
+        }
         public SDLMMControl()
         {
             InitializeComponent();
             canvas = new Bitmap(this.Width, this.Height);
-            
+
             if (grabGraphic != null)
             {
                 graphic = grabGraphic;
@@ -285,10 +328,6 @@ namespace Utilities.UI
             graphic.InterpolationMode = setInterpolationMode;
             graphic.SmoothingMode = setSmoothMode;
 
-        }
-        protected override void OnLoad(EventArgs e)
-        {
-            base.OnLoad(e);
         }
         SmoothingMode setSmoothMode = SmoothingMode.None;
         InterpolationMode setInterpolationMode = InterpolationMode.Low;
@@ -323,7 +362,7 @@ namespace Utilities.UI
                 }
             }
         }
-        public SizeF MeasureString(String s, Font font = null,int maxsize=-1)
+        public SizeF MeasureString(String s, Font font = null, int maxsize = -1)
         {
             if (font == null) font = this.Font;
             if (maxsize < 0)
@@ -332,7 +371,7 @@ namespace Utilities.UI
             }
             return graphic.MeasureString(s, font, maxsize);
         }
-  
+
         public void setUseAlpha(Boolean buse)
         {
             useAlpha = buse;
@@ -341,7 +380,7 @@ namespace Utilities.UI
         {
             if (!useAlpha)
             {
-                color =(int) ((uint)color | alphaMask);
+                color = (int)((uint)color | alphaMask);
             }
             return Color.FromArgb(color);
         }
@@ -378,30 +417,37 @@ namespace Utilities.UI
                 canvas.SetPixel(x, y, Color.FromArgb(color));
             }
         }
-        public void drawEllipse(int x, int y, int w, int h, int color)
+        public void drawEllipse(int x, int y, int w, int h, int color, int width = 1)
         {
             hasDrawRequest = true;
             Pen pen = GetPenFromColor(color);
+            pen.Width = width;
             graphic.DrawEllipse(pen, x, y, w, h);
         }
-        public void fillEllipse(int x, int y, int w, int h, int color)
-        {
-            hasDrawRequest = true;
-            Brush brush = GetBrushFromColor(color);
-            graphic.FillEllipse(brush, x, y, w, h);
-        }
+
         public void fillEllipse(int x, int y, int w, int h, Brush brush)
         {
             hasDrawRequest = true;
             graphic.FillEllipse(brush, x, y, w, h);
         }
-        public void drawCircle(int n_cx, int n_cy, int radius, int pixel)
+        public void drawCircle(int n_cx, int n_cy, int radius, int pixel, int width = 1)
         {
             hasDrawRequest = true;
             //lock (canvas)
             {
                 Pen pen = GetPenFromColor(pixel);
-                graphic.DrawEllipse(pen, n_cx-radius, n_cy-radius, radius * 2, radius* 2);
+                pen.Width = width;
+                graphic.DrawEllipse(pen, n_cx - radius, n_cy - radius, radius * 2, radius * 2);
+            }
+        }
+
+        public void fillEllipse(int x, int y, int w, int h, int color)
+        {
+            hasDrawRequest = true;
+            //lock (canvas)
+            {
+                Brush pen = GetBrushFromColor(color);
+                graphic.FillEllipse(pen, x, y, w, h);
             }
         }
         private static bool UseDictionaryPrefetch = true;
@@ -419,7 +465,7 @@ namespace Utilities.UI
             }
             return ret;
         }
-        Pen GetPenFromColor(int color,int penWidth=1)
+        Pen GetPenFromColor(int color, int penWidth = 1)
         {
             if (!UseDictionaryPrefetch)
             {
@@ -448,30 +494,48 @@ namespace Utilities.UI
             //lock (canvas)
             {
                 Brush brush = GetBrushFromColor(color);
-                graphic.FillEllipse(brush, x-r, y-r, r * 2, r * 2);
+                graphic.FillEllipse(brush, x - r, y - r, r * 2, r * 2);
             }
         }
 
         float[] drawRectDefaultDashPattern = new float[] { 4.0F, 2.0F, 1.0F, 3.0F };
-        public void drawRect(int x, int y, int w, int h, int color,bool dashed=false,int width=1)
+        public void drawRect(int x, int y, int w, int h, int color, bool dashed = false, int width = 1, int angle = 0)
         {
             hasDrawRequest = true;
             //lock (canvas)
             {
-                Pen pen = GetPenFromColor(color,width);
+                Pen pen = GetPenFromColor(color, width);
                 if (dashed)
                 {
                     pen.DashStyle = DashStyle.DashDotDot;
-                    pen.DashPattern=drawRectDefaultDashPattern;
+                    pen.DashPattern = drawRectDefaultDashPattern;
                 }
-                graphic.DrawRectangle(pen, x, y, w, h);
+                else
+                {
+                    pen.DashStyle = DashStyle.Solid;
+                }
+                if (angle != 0)
+                {
+                    using (Matrix m = new Matrix())
+                    {
+                        m.RotateAt(angle, new PointF(x + w / 2,
+                                                  y + h / 2));
+                        graphic.Transform = m;
+                        graphic.DrawRectangle(pen, x, y, w, h);
+                        graphic.ResetTransform();
+                    }
+                }
+                else
+                {
+                    graphic.DrawRectangle(pen, x, y, w, h);
+                }
             }
         }
         // Draw a rectangle in the indicated Rectangle
         // rounding the indicated corners.
         private GraphicsPath MakeRoundedRect(
-            RectangleF rect, float xradius=5, float yradius=5,
-            bool round_ul=true, bool round_ur=true, bool round_lr=true, bool round_ll=true)
+            RectangleF rect, float xradius = 5, float yradius = 5,
+            bool round_ul = true, bool round_ur = true, bool round_lr = true, bool round_ll = true)
         {
 
             // Make a GraphicsPath to draw the rectangle.
@@ -567,7 +631,7 @@ namespace Utilities.UI
             GraphicsPath path = MakeRoundedRect(new RectangleF(x, y, w, h), rad, rad);
             graphic.DrawPath(GetPenFromColor(color), path);
         }
-        public void fillRoundRect(int x, int y, int w, int h, float radx,float rady, int color)
+        public void fillRoundRect(int x, int y, int w, int h, float radx, float rady, int color)
         {
             hasDrawRequest = true;
             if (radx <= 0 || rady <= 0)
@@ -594,6 +658,42 @@ namespace Utilities.UI
             GraphicsPath path = MakeRoundedRect(new RectangleF(x, y, w, h), radx, rady);
             graphic.FillPath(brush, path);
         }
+        GraphicsPath MakePolygonPath(Point[] points)
+        {
+            GraphicsPath ret = new GraphicsPath();
+            ret.AddPolygon(points);
+            return ret;
+        }
+        public void fillPolygon(Point[] points, int color, int offsetX = 0, int offsetY = 0)
+        {
+            fillPolygon(points, GetBrushFromColor(color), offsetX, offsetY);
+        }
+        public void fillPolygon(Point[] points, Brush brush, int offsetX = 0, int offsetY = 0)
+        {
+            hasDrawRequest = true;
+            GraphicsPath path = MakePolygonPath(points);
+            graphic.TranslateTransform(offsetX, offsetY);
+            graphic.FillPath(brush, path);
+            graphic.TranslateTransform(-offsetX, -offsetY);
+        }
+        public void drawPolygon(Point[] points, int color, int width, bool dashed = false, int offsetX = 0, int offsetY = 0)
+        {
+            hasDrawRequest = true;
+            //lock (canvas)
+            {
+                Pen pen = GetPenFromColor(color, width);
+                if (dashed)
+                {
+                    pen.DashStyle = DashStyle.DashDotDot;
+                    pen.DashPattern = drawRectDefaultDashPattern;
+                }
+                GraphicsPath path = MakePolygonPath(points);
+                Point orig = graphic.RenderingOrigin;
+                graphic.TranslateTransform(offsetX, offsetY);
+                graphic.DrawPath(pen, path);
+                graphic.TranslateTransform(-offsetX, -offsetY);
+            }
+        }
         public void fillRoundRect(int x, int y, int w, int h, float rad, Brush brush)
         {
             fillRoundRect(x, y, w, h, rad, rad, brush);
@@ -604,56 +704,87 @@ namespace Utilities.UI
         }
         public void fillRoundRect(Rectangle r, float rad, Brush brush)
         {
-            fillRoundRect(r.X,r.Y,r.Width,r.Height, rad, rad, brush);
+            fillRoundRect(r.X, r.Y, r.Width, r.Height, rad, rad, brush);
         }
-        public void fillRoundRect(Point position, Size size,float rad, int color)
+        public void fillRoundRect(Point position, Size size, float rad, int color)
         {
-            fillRoundRect(position.X,position.Y,size.Width,size.Height, rad, rad, color);
+            fillRoundRect(position.X, position.Y, size.Width, size.Height, rad, rad, color);
         }
         public void fillRoundRect(Point position, Size size, float rad, Brush brush)
         {
             fillRoundRect(position.X, position.Y, size.Width, size.Height, rad, rad, brush);
         }
 
-        public void fillRect(int x, int y, int w, int h, int color)
+
+        public void fillRect(int x, int y, int w, int h, int color, int angle = 0)
         {
             hasDrawRequest = true;
             //lock (canvas)
             {
                 Brush brush = GetBrushFromColor(color);
-                graphic.FillRectangle(brush, x, y, w, h);
+
+                if (angle != 0)
+                {
+                    using (Matrix m = new Matrix())
+                    {
+                        m.RotateAt(angle, new PointF(x + w / 2,
+                                                  y + h / 2));
+                        graphic.Transform = m;
+                        graphic.FillRectangle(brush, x, y, w, h);
+                        graphic.ResetTransform();
+                    }
+                }
+                else
+                {
+                    graphic.FillRectangle(brush, x, y, w, h);
+                }
             }
         }
-        public void fillRect(int x, int y, int w, int h, Brush linearGradient)
+        public void fillRect(int x, int y, int w, int h, Brush linearGradient, int angle = 0)
         {
             hasDrawRequest = true;
             //lock (canvas)
             {
-                graphic.FillRectangle(linearGradient, x, y, w, h);
+
+                if (angle != 0)
+                {
+                    using (Matrix m = new Matrix())
+                    {
+                        m.RotateAt(angle, new PointF(x + w / 2,
+                                                  y + h / 2));
+                        graphic.Transform = m;
+                        graphic.FillRectangle(linearGradient, x, y, w, h);
+                        graphic.ResetTransform();
+                    }
+                }
+                else
+                {
+                    graphic.FillRectangle(linearGradient, x, y, w, h);
+                }
             }
         }
-        public void fillRect(Rectangle r, int color)
+        public void fillRect(Rectangle r, int color, int angle = 0)
         {
-            fillRect(r.X, r.Y, r.Width, r.Height, color);
+            fillRect(r.X, r.Y, r.Width, r.Height, color, angle);
         }
-        public void fillRect(Point position, Size size, int color)
+        public void fillRect(Point position, Size size, int color, int angle = 0)
         {
-            fillRect(position.X, position.Y, size.Width, size.Height, color);
+            fillRect(position.X, position.Y, size.Width, size.Height, color, angle);
         }
-        public void fillRect(Rectangle r, Brush linearGradient)
+        public void fillRect(Rectangle r, Brush linearGradient, int angle = 0)
         {
-            fillRect(r.X, r.Y, r.Width, r.Height, linearGradient);
+            fillRect(r.X, r.Y, r.Width, r.Height, linearGradient, angle);
         }
-        public void fillRect(Point position,Size size, Brush linearGradient)
+        public void fillRect(Point position, Size size, Brush linearGradient, int angle = 0)
         {
-            fillRect(position.X,position.Y,size.Width,size.Height, linearGradient);
+            fillRect(position.X, position.Y, size.Width, size.Height, linearGradient, angle);
         }
 
         void drawQuadBezierSeg(Point p0, Point p1, Point p2, int color)
         {
             drawQuadBezierSeg(p0.X, p0.Y, p1.X, p1.Y, p2.X, p2.Y, color);
         }
-        void drawQuadBezierSeg(int x0, int y0, int x1, int y1, int x2, int y2,int color)
+        void drawQuadBezierSeg(int x0, int y0, int x1, int y1, int x2, int y2, int color)
         {
             hasDrawRequest = true;
             BitmapData data = canvas.LockBits(new Rectangle(0, 0, canvas.Width, canvas.Height), ImageLockMode.ReadWrite, canvas.PixelFormat);
@@ -691,14 +822,14 @@ namespace Utilities.UI
                             intptr[targetIdx] = color;
                         }                                 /* plot curve */
                         if (x0 == x2 && y0 == y2) return;  /* last pixel -> curve finished */
-                        y1 = ((2 * err) < dx)?0:1;                  /* save value for test of y step */
+                        y1 = ((2 * err) < dx) ? 0 : 1;                  /* save value for test of y step */
                         if (2 * err > dy) { x0 += sx; dx -= xy; err += dy += yy; } /* x step */
-                        if (y1!=0) { y0 += sy; dy -= xy; err += dx += xx; } /* y step */
+                        if (y1 != 0) { y0 += sy; dy -= xy; err += dx += xx; } /* y step */
                     } while (dy < dx);           /* gradient negates -> algorithm fails */
                 }
             }
             canvas.UnlockBits(data);
-            drawLine(x0, y0, x2, y2,color);                  /* plot remaining part to end */
+            drawLine(x0, y0, x2, y2, color);                  /* plot remaining part to end */
         }
         public void drawLine(int x0, int y0, int x1, int y1, int color, bool maskForEscape, params Rectangle[] mask)
         {
@@ -710,13 +841,13 @@ namespace Utilities.UI
             {
                 _drawLine(x0, y0, x1, y1, color, maskForEscape, mask);
             }
-            else if(stride > 1)
+            else if (stride > 1)
             {
                 if (y0 == y1)
                 {
                     for (int i = -stride / 2; i <= stride / 2; ++i)
                     {
-                        _drawLine(x0, y0 + i, x1, y1 + i, color,maskForEscape, mask);
+                        _drawLine(x0, y0 + i, x1, y1 + i, color, maskForEscape, mask);
                     }
                     return;
                 }
@@ -724,14 +855,14 @@ namespace Utilities.UI
                 {
                     for (int i = -stride / 2; i <= stride / 2; ++i)
                     {
-                        _drawLine(x0+i, y0 , x1+i, y1, color, maskForEscape, mask);
+                        _drawLine(x0 + i, y0, x1 + i, y1, color, maskForEscape, mask);
                     }
                 }
             }
-            
+
 
         }
-        private void _drawLine(int x0, int y0, int x1, int y1, int color,bool maskForEscape, params Rectangle[] mask)
+        private void _drawLine(int x0, int y0, int x1, int y1, int color, bool maskForEscape, params Rectangle[] mask)
         {
             hasDrawRequest = true;
             BitmapData data = canvas.LockBits(new Rectangle(0, 0, canvas.Width, canvas.Height), ImageLockMode.ReadWrite, canvas.PixelFormat);
@@ -764,7 +895,7 @@ namespace Utilities.UI
                         }
                         if (!masked && y >= 0 && y < height && x >= 0 && x < width)
                         {
-                            
+
                             int targetIdx = (int)y * width + (int)x;
                             if (targetIdx >= 0 && targetIdx < maxlen)
                             {
@@ -803,34 +934,134 @@ namespace Utilities.UI
             }
             canvas.UnlockBits(data);
         }
-        public void drawRectMasked(int x,int y,int w,int h,int color,int stride,bool maskForEscape, params Rectangle[] mask)
+        public void drawRectMasked(int x, int y, int w, int h, int color, int stride, bool maskForEscape, params Rectangle[] mask)
         {
-            drawLine(x, y, x + w, y, color, stride,maskForEscape, mask);
+            drawLine(x, y, x + w, y, color, stride, maskForEscape, mask);
             drawLine(x, y, x, y + h, color, stride, maskForEscape, mask);
             drawLine(x, y + h, x + w, y + h, color, stride, maskForEscape, mask);
             drawLine(x + w, y, x + w, y + h, color, stride, maskForEscape, mask);
         }
-        public void drawRectMasked(int x, int y, int w, int h, int color,  bool maskForEscape, params Rectangle[] mask)
+        public void drawRectMasked(int x, int y, int w, int h, int color, bool maskForEscape, params Rectangle[] mask)
         {
             drawRectMasked(x, y, w, h, color, 1, maskForEscape, mask);
         }
-        public void drawLine(int x, int y, int x2, int y2,int color,int stride=1)
+        public void drawLine(int x, int y, int x2, int y2, int color, int stride = 1, bool dashed = false)
         {
             hasDrawRequest = true;
             //lock(canvas)
             {
-                 Pen pen = GetPenFromColor(color,stride);
-                 graphic.DrawLine(pen, x, y, x2, y2);
+                Pen pen = GetPenFromColor(color, stride);
+                if (dashed)
+                {
+                    pen.DashStyle = DashStyle.DashDotDot;
+                    pen.DashPattern = drawRectDefaultDashPattern;
+                }
+                else
+                {
+                    pen.DashStyle = DashStyle.Solid;
+                }
+                graphic.DrawLine(pen, x, y, x2, y2);
             }
         }
-        public void drawPixels(int[] pixels, int x, int y, int w, int h,int transkey)
+        public void drawDashedLine(int x0, int y0, int x1, int y1, int color, int stride = 1)
+        {
+            Pen pen = GetPenFromColor(color, stride);
+            {
+                pen.DashStyle = DashStyle.DashDotDot;
+                pen.DashPattern = drawRectDefaultDashPattern;
+                this.graphic.DrawLine(pen, x0, y0, x1, y1);
+            }
+        }
+        public void drawDotArrowLine(int x, int y, int x2, int y2, int color, int stride = 1, bool dashed = false, int additionalArrowSize = 0)
+        {
+            hasDrawRequest = true;
+            //lock(canvas)
+            {
+                Pen pen = GetPenFromColor(color, stride);
+
+                if (dashed)
+                {
+                    pen.DashStyle = DashStyle.DashDotDot;
+                    pen.DashPattern = drawRectDefaultDashPattern;
+                }
+                else
+                {
+                    pen.DashStyle = DashStyle.Solid;
+                }
+                float arrowSize = additionalArrowSize;
+                if (arrowSize == 0)
+                {
+                    arrowSize = stride / 2;
+                }
+                AdjustableArrowCap bigArrow = new AdjustableArrowCap(arrowSize, arrowSize);
+                pen.CustomEndCap = bigArrow;
+                pen.StartCap = LineCap.Round;
+                graphic.DrawLine(pen, x, y, x2, y2);
+                this.fillCircle(x, y, stride * stride / 4, color);
+            }
+        }
+        public void drawDoubleArrowLine(int x, int y, int x2, int y2, int color, int stride = 1, bool dashed = false, int additionalArrowSize = 0)
+        {
+            hasDrawRequest = true;
+            //lock(canvas)
+            {
+                Pen pen = GetPenFromColor(color, stride);
+
+                if (dashed)
+                {
+                    pen.DashStyle = DashStyle.DashDotDot;
+                    pen.DashPattern = drawRectDefaultDashPattern;
+                }
+                else
+                {
+                    pen.DashStyle = DashStyle.Solid;
+                }
+                float arrowSize = additionalArrowSize;
+                if (arrowSize == 0)
+                {
+                    arrowSize = stride / 2;
+                }
+                AdjustableArrowCap bigArrow = new AdjustableArrowCap(arrowSize, arrowSize);
+                pen.CustomEndCap = bigArrow;
+                pen.CustomStartCap = bigArrow;
+                graphic.DrawLine(pen, x, y, x2, y2);
+            }
+        }
+        public void drawArrowLine(int x, int y, int x2, int y2, int color, int stride = 1, bool dashed = false, int additionalArrowSize = 0)
+        {
+            hasDrawRequest = true;
+            //lock(canvas)
+            {
+                Pen pen = GetPenFromColor(color, stride);
+                pen.StartCap = LineCap.Round;
+                if (dashed)
+                {
+                    pen.DashStyle = DashStyle.DashDotDot;
+                    pen.DashPattern = drawRectDefaultDashPattern;
+                }
+                else
+                {
+                    pen.DashStyle = DashStyle.Solid;
+                }
+                float arrowSize = additionalArrowSize;
+                if (arrowSize == 0)
+                {
+                    arrowSize = stride / 2;
+                }
+                AdjustableArrowCap bigArrow = new AdjustableArrowCap(arrowSize, arrowSize);
+
+                pen.CustomEndCap = bigArrow;
+                graphic.DrawLine(pen, x, y, x2, y2);
+            }
+        }
+        public void drawPixels(int[] pixels, int x, int y, int w, int h, int transkey)
         {
             hasDrawRequest = true;
             //lock (canvas)
             {
                 int origh = pixels.Length / w;
                 Bitmap bmp = new Bitmap(w, origh);
-                BitmapData bmpData= bmp.LockBits(new Rectangle(0, 0, w, h), System.Drawing.Imaging.ImageLockMode.WriteOnly, bmp.PixelFormat);
+                BitmapData bmpData = bmp.LockBits(new Rectangle(0, 0, w, h), System.Drawing.Imaging.ImageLockMode.WriteOnly, bmp.PixelFormat);
                 unsafe
                 {
                     int* pixelsMap = (int*)bmpData.Scan0;
@@ -865,7 +1096,7 @@ namespace Utilities.UI
                 }
 #endif
                 bmp.UnlockBits(bmpData);
-                graphic.DrawImageUnscaledAndClipped(bmp,  new Rectangle(x, y, w, h));
+                graphic.DrawImageUnscaledAndClipped(bmp, new Rectangle(x, y, w, h));
             }
         }
         public void stretchpixels(int[] pixels, int w, int h, int[] output, int w2, int h2)
@@ -897,7 +1128,7 @@ namespace Utilities.UI
         }
         public void drawPixelsSingleThread(int[] pixels, int x, int y, int w, int h)
         {
-            
+
             if (w <= 0 || h <= 0) return;
             hasDrawRequest = true;
             //lock (canvas)
@@ -912,7 +1143,7 @@ namespace Utilities.UI
                 unsafe
                 {
                     int* pixelsMap = (int*)bmpData.Scan0;
-                    for(int i=0; i<pixels.Length; ++i)
+                    for (int i = 0; i < pixels.Length; ++i)
                     {
                         Color c = coveredColor(pixels[i]);
                         pixelsMap[i] = c.ToArgb();
@@ -961,7 +1192,7 @@ namespace Utilities.UI
         public void loadimage(String name, out int[] pixels, out int w, out int h)
         {
             Bitmap bmp = (Bitmap)Bitmap.FromFile(name);
-            
+
             w = bmp.Width;
             h = bmp.Height;
 #if false
@@ -996,7 +1227,7 @@ namespace Utilities.UI
                 }
             }
             pixels = outputPixels;
-#endif   
+#endif
         }
         public void drawImage(Bitmap bmp, int x, int y, int w, int h)
         {
@@ -1030,7 +1261,7 @@ namespace Utilities.UI
                     {
                         graphic.DrawImage(bmp, x, y, w, h);
                     }
-#endif           
+#endif
                     graphic.DrawImage(bmp, x, y, w, h);
                 }
             }
@@ -1087,7 +1318,7 @@ namespace Utilities.UI
                         //bmp.SetPixel(i % w, i / w, c);
                     }
                 }
-                UnlockBitmapData(bmp2,bmpData0);
+                UnlockBitmapData(bmp2, bmpData0);
                 UnlockBitmapData(newBmp, bmpData);
             }
             drawImage(newBmp, x, y, w, h);
@@ -1105,7 +1336,7 @@ namespace Utilities.UI
             }
         }
         object drawImageLocker = new object();
-        public void drawImage(Bitmap bmp, int x, int y, int w, int h,float alpha)
+        public void drawImage(Bitmap bmp, int x, int y, int w, int h, float alpha)
         {
             hasDrawRequest = true;
             if (alpha >= 1)
@@ -1116,7 +1347,7 @@ namespace Utilities.UI
             Bitmap newBmp = new Bitmap(bmp);
             lock (drawImageLocker)
             {
-                if (alpha < 0) alpha = 0;  
+                if (alpha < 0) alpha = 0;
                 int Length = bmp.Width * bmp.Height;
                 Bitmap bmp2 = bmp;
                 if (bmp.PixelFormat != PixelFormat.Format32bppArgb)
@@ -1148,9 +1379,9 @@ namespace Utilities.UI
         public void Clear(int color)
         {
             hasDrawRequest = true;
-            this.graphic.Clear( coveredColor(color) );
+            this.graphic.Clear(coveredColor(color));
         }
-        public void drawPie(Rectangle rect,int color,float startAngle,float sweepAngle)
+        public void drawPie(Rectangle rect, int color, float startAngle, float sweepAngle)
         {
             Pen pen = GetPenFromColor(color);
             this.graphic.DrawPie(pen, rect, startAngle, sweepAngle);
@@ -1160,37 +1391,12 @@ namespace Utilities.UI
             Brush brush = GetBrushFromColor(color);
             this.graphic.FillPie(brush, rect, startAngle, sweepAngle);
         }
-        public void fillPath(int color,params Point[] pts)
-        {
-            if (pts == null || pts.Length == 0) return;
-
-           
-            try
-            {
-                hasDrawRequest = true;
-                GraphicsPath path = new GraphicsPath();
-                Point ptStart = pts[0];
-                for (int i = 1; i < pts.Length; ++i)
-                {
-                    Point ptCurrent = pts[i];
-                    path.AddLine(ptStart, ptCurrent);
-                    ptStart = ptCurrent;
-                }
-                Brush brush = GetBrushFromColor(color);
-                graphic.FillPath(brush, path);
-            }
-            catch (Exception ee)
-            {
-
-            }
-
-        }
-        public void drawString(String str, int x, int y,int color,Font font=null)
+        public void drawString(String str, int x, int y, int color, Font font = null)
         {
             hasDrawRequest = true;
             //lock (canvas)
             {
-                
+
                 try
                 {
                     if (font == null)
@@ -1198,20 +1404,44 @@ namespace Utilities.UI
                         font = System.Drawing.SystemFonts.DefaultFont;
                     }
                     Brush brush = GetBrushFromColor(color);
-                    if(!String.IsNullOrEmpty(str))
+                    if (!String.IsNullOrEmpty(str))
+                    {
                         graphic.DrawString(str, font, brush, x, y);
+                    }
                 }
                 catch (Exception ee)
                 {
-                    
+
+                }
+            }
+        }
+        public void drawString(String str, int x, int y, int w, int h, int color, Font font = null)
+        {
+            hasDrawRequest = true;
+            //lock (canvas)
+            {
+
+                try
+                {
+                    if (font == null)
+                    {
+                        font = System.Drawing.SystemFonts.DefaultFont;
+                    }
+                    Brush brush = GetBrushFromColor(color);
+                    if (!String.IsNullOrEmpty(str))
+                    {
+                        graphic.DrawString(str, font, brush, new RectangleF(x, y, w, h));
+                    }
+                }
+                catch (Exception ee)
+                {
+
                 }
             }
         }
 
-
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            base.OnPaintBackground(e);
             if (drawFncInvoked)
             {
                 CompositingMode mode = e.Graphics.CompositingMode;
@@ -1228,9 +1458,9 @@ namespace Utilities.UI
         }
         protected override void OnPaint(PaintEventArgs e)
         {
-            
+
             //lock (canvas)
-            if(drawFncInvoked)
+            if (drawFncInvoked)
             {
                 CompositingMode mode = e.Graphics.CompositingMode;
                 e.Graphics.CompositingMode = CompositingMode.SourceCopy;
@@ -1239,7 +1469,7 @@ namespace Utilities.UI
                 if (this.grabGraphic != null && this.grabRectangle != null)
                 {
                     CompositingMode mode2 = this.grabGraphic.CompositingMode;
-                    Rectangle rect=grabRectangle.Value;
+                    Rectangle rect = grabRectangle.Value;
                     this.grabGraphic.DrawImage(canvas, rect.X, rect.Y, rect.Width, rect.Height);
                     this.grabGraphic.CompositingMode = mode2;
                 }
@@ -1250,15 +1480,15 @@ namespace Utilities.UI
             {
                 e.Graphics.DrawImageUnscaled(canvas, 0, 0, canvas.Width, canvas.Height);
             }
-           // base.OnPaint(e);
+            // base.OnPaint(e);
         }
-        
+
         public Bitmap flushToBMP()
         {
             graphic.Flush();
             return canvas;
         }
-        public Bitmap flushToBMP(int left,int top,int w,int h)
+        public Bitmap flushToBMP(int left, int top, int w, int h)
         {
             graphic.Flush();
             if (left < 0)
@@ -1291,78 +1521,92 @@ namespace Utilities.UI
                     graphic.Flush();
                 }
                 this.Invalidate();
+                if (Flushed != null)
+                {
+                    Flushed(this, EventArgs.Empty);
+                }
             }
             catch (Exception ee)
             {
 
             }
         }
-        
-		public void mode7Render(double angle, int vx, int vy, int[] pixels, int bw, int bh, int x, int y, int w,
-				int h) {
+
+        public void mode7Render(double angle, int vx, int vy, int[] pixels, int bw, int bh, int x, int y, int w,
+                int h)
+        {
             hasDrawRequest = true;
-            
-			mode7render_internal(0.5, 1.5, 2, 1, angle, vx, vy, pixels, bw, bh, x, y, w, h);
-		}
 
-		int[] elesArray;
-		int[] mode7ToDraw;
-		int mode7ToDrawW, mode7ToDrawH;
+            mode7render_internal(0.5, 1.5, 2, 1, angle, vx, vy, pixels, bw, bh, x, y, w, h);
+        }
 
-		public void mode7render_internal(double groundFactor,  double xFac,  double yFac,
-				 int scanlineJump,  double angle,  int vx,  int vy,  int[] bg,  int bw,
-				 int bh,  int tx,  int ty, int _w, int _h) {
+        int[] elesArray;
+        int[] mode7ToDraw;
+        int mode7ToDrawW, mode7ToDrawH;
+
+        public void mode7render_internal(double groundFactor, double xFac, double yFac,
+                 int scanlineJump, double angle, int vx, int vy, int[] bg, int bw,
+                 int bh, int tx, int ty, int _w, int _h)
+        {
             hasDrawRequest = true;
-			if (tx + _w >= this.Width) {
-				_w = this.Width - tx;
-			}
-			if (ty + _h > this.Height) {
-				_h =  this.Height- ty;
-			}
-			int w = _w;
-			int h = _h;
-			if (mode7ToDraw != null) {
-				if (w * h > mode7ToDrawW * mode7ToDrawH) {
-					mode7ToDraw = new int[w * h];
-				}
-			} else {
-				mode7ToDraw = new int[w * h];
-			}
-			if (mode7ToDrawW != w) {
-				mode7ToDrawW = w;
-			}
-			if (mode7ToDrawH != h) {
-				mode7ToDrawH = h;
-			}
-			 int[] toDraw = mode7ToDraw;
-			 int lev = w / scanlineJump;
-			 int x;
-			 double ca = Math.Cos(angle) * 48 * groundFactor * xFac;
-			 double sa = Math.Sin(angle) * 48 * groundFactor * xFac;
-			 double can = Math.Cos(angle + 3.1415926 / 2) * 16 * groundFactor * yFac;
-			 double san = Math.Sin(angle + 3.1415926 / 2) * 16 * groundFactor * yFac;
+            if (tx + _w >= this.Width)
+            {
+                _w = this.Width - tx;
+            }
+            if (ty + _h > this.Height)
+            {
+                _h = this.Height - ty;
+            }
+            int w = _w;
+            int h = _h;
+            if (mode7ToDraw != null)
+            {
+                if (w * h > mode7ToDrawW * mode7ToDrawH)
+                {
+                    mode7ToDraw = new int[w * h];
+                }
+            }
+            else
+            {
+                mode7ToDraw = new int[w * h];
+            }
+            if (mode7ToDrawW != w)
+            {
+                mode7ToDrawW = w;
+            }
+            if (mode7ToDrawH != h)
+            {
+                mode7ToDrawH = h;
+            }
+            int[] toDraw = mode7ToDraw;
+            int lev = w / scanlineJump;
+            int x;
+            double ca = Math.Cos(angle) * 48 * groundFactor * xFac;
+            double sa = Math.Sin(angle) * 48 * groundFactor * xFac;
+            double can = Math.Cos(angle + 3.1415926 / 2) * 16 * groundFactor * yFac;
+            double san = Math.Sin(angle + 3.1415926 / 2) * 16 * groundFactor * yFac;
 
-             for (x = 0; x < lev; ++x)
-             {
-                 int y;
-                 double xr = -(((double)x / lev) - 0.5);
-                 double cax = (ca * xr) + can;
-                 double sax = (sa * xr) + san;
-                 for (y = 0; y < h; ++y)
-                 {
-                     double zf = ((double)h) / y;
-                     int xd = (int)(vx + zf * cax);
-                     int yd = (int)(vy + zf * sax);
-                     if (yd < bh && xd < bw && yd > 0 && xd > 0)
-                     {
-                         toDraw[y * w + x] = bg[yd * bw + xd];
-                     }
-                 }
-             }
-			
-			drawPixels(toDraw, tx, ty, w, h);
-		}
+            for (x = 0; x < lev; ++x)
+            {
+                int y;
+                double xr = -(((double)x / lev) - 0.5);
+                double cax = (ca * xr) + can;
+                double sax = (sa * xr) + san;
+                for (y = 0; y < h; ++y)
+                {
+                    double zf = ((double)h) / y;
+                    int xd = (int)(vx + zf * cax);
+                    int yd = (int)(vy + zf * sax);
+                    if (yd < bh && xd < bw && yd > 0 && xd > 0)
+                    {
+                        toDraw[y * w + x] = bg[yd * bw + xd];
+                    }
+                }
+            }
 
+            drawPixels(toDraw, tx, ty, w, h);
+        }
+        private double mPageScale = 1;
         private void SDLMMControl_SizeChanged(object sender, EventArgs e)
         {
             try
@@ -1371,6 +1615,7 @@ namespace Utilities.UI
                 {
                     if (graphic != null)
                     {
+                        double scale = 1;
                         hasDrawRequest = true;
                         drawFncInvoked = true;
                         graphic.Flush();
@@ -1382,6 +1627,7 @@ namespace Utilities.UI
                         }
                         if (width <= 0) width = 32;
                         if (height <= 0) height = 32;
+
                         canvas = new Bitmap(canvas, width, height);
                         if (grabGraphic != null)
                         {
@@ -1393,6 +1639,7 @@ namespace Utilities.UI
                         }
                         graphic.InterpolationMode = setInterpolationMode;
                         graphic.SmoothingMode = setSmoothMode;
+                        SetScale(mPageScale);
                     }
                 }
             }
@@ -1401,49 +1648,7 @@ namespace Utilities.UI
 
             }
         }
-        /// <summary> 
-        /// 設計工具所需的變數。
-        /// </summary>
-        private System.ComponentModel.IContainer components = null;
 
-        /// <summary> 
-        /// 清除任何使用中的資源。
-        /// </summary>
-        /// <param name="disposing">如果應該處置 Managed 資源則為 true，否則為 false。</param>
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing && (components != null))
-            {
-                components.Dispose();
-            }
-            base.Dispose(disposing);
-        }
-
-        #region 元件設計工具產生的程式碼
-
-        /// <summary> 
-        /// 此為設計工具支援所需的方法 - 請勿使用程式碼編輯器
-        /// 修改這個方法的內容。
-        /// </summary>
-        private void InitializeComponent()
-        {
-            this.SuspendLayout();
-            // 
-            // SDLMMControl
-            // 
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.None;
-            this.AutoValidate = System.Windows.Forms.AutoValidate.Disable;
-            this.CausesValidation = false;
-            this.DoubleBuffered = true;
-            this.Margin = new System.Windows.Forms.Padding(0);
-            this.Name = "SDLMMControl";
-            this.Size = new System.Drawing.Size(471, 484);
-            this.SizeChanged += new System.EventHandler(this.SDLMMControl_SizeChanged);
-            this.ResumeLayout(false);
-
-        }
-
-        #endregion
     }
     public class SolidBrushDictionary<key, type>
     {
