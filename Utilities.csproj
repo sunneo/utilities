@@ -102,6 +102,12 @@
     <Compile Include="MD5Directory.cs" />
     <Compile Include="Network.cs" />
     <Compile Include="RegistryHelper.cs" />
+    <Compile Include="ScreenCapturer.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="ScreenCapturer.Designer.cs">
+      <DependentUpon>ScreenCapturer.cs</DependentUpon>
+    </Compile>
     <Compile Include="StringCipher.cs" />
     <Compile Include="Tracer.cs" />
     <Compile Include="UI\BorderLessButton.cs">
