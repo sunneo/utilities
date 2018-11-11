@@ -405,6 +405,11 @@ namespace Utilities
                 }
                 CompressedString = null;
             }
+
+            public void Dispose()
+            {
+                throw new NotImplementedException();
+            }
         }
 
         private List<SubBlockInfo> GenerateUpdatedRegion(Bitmap bmp)
