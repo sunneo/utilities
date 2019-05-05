@@ -3,41 +3,67 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Utilities.Virtual.interfaces;
 
 namespace Utilities.Virtual
 {
-    public class VMFiniteStateMachine
+    public class VMFiniteStateMachine : IVMFiniteStateMachine
     {
-        public long IFCount = 0;
-        FSMContext fsmContext = new FSMContext();
-        public bool Terminated = false;
+        long IFCount = 0;
+        FSMContext m_FsmContext = new FSMContext();
+        List<IR> Instructions = new List<IR>();
+        private bool m_Terminated = false;
+        Dictionary<String, int> mLabelMap = new Dictionary<string, int>();
+
         public event EventHandler Finished;
-        public class FSMContext
+
+        internal class VMInstructionFactory:IInstructionFactory
         {
-            public int IP;
-            public String STATUS;
-            public Dictionary<String, object> GeneralReg = new Dictionary<string, object>();
+            public VMFiniteStateMachine Parent;
+            public VMInstructionFactory(VMFiniteStateMachine mParent)
+            {
+                this.Parent = mParent;
+            }
+            public Action<FSMContext> GOTO(int ip)
+            {
+                return (fsm) =>
+                {
+                    fsm.IP = ip;
+                };
+            }
+            public Action<FSMContext> GOTO(String label)
+            {
+                return (fsm) =>
+                {
+                    if (Parent.LabelMap.ContainsKey(label))
+                    {
+                        fsm.IP = Parent.LabelMap[label];
+                    }
+                };
+            }
+
+            public Action<FSMContext> NOP
+            {
+                get
+                {
+                    return new Action<FSMContext>((fsm) => { });
+                }
+            }
         }
 
-        public Dictionary<String, int> LabelMap = new Dictionary<string, int>();
-        public class IR
+        public bool Terminated
         {
-            public System.Action<FSMContext> Instruction;
-            public bool Finished;
-            public IR(System.Action<FSMContext> ins)
-            {
-                this.Instruction = ins;
-            }
-            public static implicit operator IR(System.Action<FSMContext> ins)
-            {
-                return new IR(ins);
-            }
-            public static implicit operator System.Action<FSMContext>(IR ins)
-            {
-                return ins.Instruction;
-            }
+            get { return m_Terminated;  }
+            set { m_Terminated = value; }
         }
-        List<IR> Instructions = new List<IR>();
+
+        public Dictionary<String, int> LabelMap
+        {
+            get
+            {
+                return mLabelMap;
+            }           
+        }
         public void AddInstruction(Action<FSMContext> ins)
         {
             Instructions.Add(ins);
@@ -64,7 +90,7 @@ namespace Utilities.Virtual
             };
             Action<FSMContext> gotoResult = (fsm) =>
             {
-                if ((bool)this.fsmContext.GeneralReg[IFLabel])
+                if ((bool)this.m_FsmContext.GeneralReg[IFLabel])
                 {
                     fsm.IP = LabelMap[THENLabel];
                 }
@@ -80,41 +106,19 @@ namespace Utilities.Virtual
         }
         public void AddLabel(String label)
         {
-            this.AddInstruction(label, NOP);
+            this.AddInstruction(label, this.InstructionFactory.NOP);
         }
-        public Action<FSMContext> GOTO(int ip)
-        {
-            return (fsm) =>
-            {
-                fsm.IP = ip;
-            };
-        }
-        public Action<FSMContext> GOTO(String label)
-        {
-            return (fsm) =>
-            {
-                if (LabelMap.ContainsKey(label))
-                {
-                    fsm.IP = LabelMap[label];
-                }
-            };
-        }
+
         public void AddGoto(int ip)
         {
             if (ip < Instructions.Count)
             {
-                this.AddInstruction((fsm) =>
-                {
-                    fsm.IP = ip;
-                });
+                this.AddInstruction(mInstructionFactory.GOTO(ip));
             }
         }
         public void AddGoto(String label)
         {
-            if (LabelMap.ContainsKey(label))
-            {
-                AddGoto(LabelMap[label]);
-            }
+            this.AddInstruction(mInstructionFactory.GOTO(label));
         }
         public void AddWhile(Func<FSMContext, bool> testCondition, Action<FSMContext> _body)
         {
@@ -132,7 +136,7 @@ namespace Utilities.Virtual
             };
             Action<FSMContext> gotoOutResult = (fsm) =>
             {
-                if (!(bool)this.fsmContext.GeneralReg[TESTLabel])
+                if (!(bool)this.m_FsmContext.GeneralReg[TESTLabel])
                 {
                     fsm.IP = LabelMap[TESTFailLabel];
                 }
@@ -160,30 +164,24 @@ namespace Utilities.Virtual
         }
         public void AddIfStatus(String status, Action<FSMContext> _body)
         {
-            this.AddIF(new Func<FSMContext, bool>((fsm) => { return fsm.STATUS.Equals(status); }), _body, NOP);
+            this.AddIF(new Func<FSMContext, bool>((fsm) => { return fsm.STATUS.Equals(status); }), _body, this.InstructionFactory.NOP);
         }
-        public Action<FSMContext> NOP
-        {
-            get
-            {
-                return new Action<FSMContext>((fsm) => { });
-            }
-        }
+
         private void LaunchIR(IR ir)
         {
             ir.Finished = false;
-            ir.Instruction(this.fsmContext);
+            ir.Instruction(this.m_FsmContext);
             ir.Finished = true;
         }
         public bool Advance()
         {
             if (Terminated) return false;
-            if (fsmContext.IP < Instructions.Count)
+            if (m_FsmContext.IP < Instructions.Count)
             {
-                int ip = fsmContext.IP;
+                int ip = m_FsmContext.IP;
                 var action = Instructions[ip];
                 // move to next
-                ++fsmContext.IP;
+                ++m_FsmContext.IP;
                 LaunchIR(action);
                 return true;
             }
@@ -195,6 +193,19 @@ namespace Utilities.Virtual
                     Finished(this, EventArgs.Empty);
                 }
                 return false;
+            }
+        }
+
+        IInstructionFactory mInstructionFactory;
+        public IInstructionFactory InstructionFactory
+        {
+            get 
+            {
+                if (mInstructionFactory == null)
+                {
+                    mInstructionFactory = new VMInstructionFactory(this);
+                }
+                return mInstructionFactory;
             }
         }
     }

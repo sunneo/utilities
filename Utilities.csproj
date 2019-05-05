@@ -162,6 +162,9 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Utility.cs" />
+    <Compile Include="Virtual\FSMContext.cs" />
+    <Compile Include="Virtual\interfaces\IVMFiniteStateMachine.cs" />
+    <Compile Include="Virtual\IR.cs" />
     <Compile Include="Virtual\VMFiniteStateMachine.cs" />
     <Compile Include="Win32API.cs" />
     <Compile Include="IniReader.cs" />
