@@ -163,6 +163,7 @@
     </Compile>
     <Compile Include="Utility.cs" />
     <Compile Include="Virtual\FSMContext.cs" />
+    <Compile Include="Virtual\interfaces\IInstructionFactory.cs" />
     <Compile Include="Virtual\interfaces\IVMFiniteStateMachine.cs" />
     <Compile Include="Virtual\IR.cs" />
     <Compile Include="Virtual\VMFiniteStateMachine.cs" />
