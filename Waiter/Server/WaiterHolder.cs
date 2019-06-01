@@ -1,11 +1,11 @@
-using utilities.Waiter.Client;
+using Utilities.Waiter.Client;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace utilities.Waiter.Server
+namespace Utilities.Waiter.Server
 {
     public class WaiterHolder
     {
