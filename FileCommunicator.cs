@@ -35,7 +35,8 @@ using System.Threading.Tasks;
 
 namespace FileCommunication
 {
-   /// <summary>
+   
+    /// <summary>
     /// file based communication
     /// so application can communicates across processes without 
     /// necessary to establish sockets and namedpipe
@@ -52,17 +53,19 @@ namespace FileCommunication
         volatile bool mTextMode = true;
         String mOutputFolder = "";
         #endregion
-
+        public WaiterHolder Waiter = new WaiterHolder();
         /// <summary>
         /// on text content inputed
         /// </summary>
         public event EventHandler<String> OnTextInputed;
+        public event EventHandler<KeyValuePair<String,String>> OnTextInputedWithPath;
         /// <summary>
         /// on binary inputed
         /// (TextMode=false)
         /// </summary>
         public event EventHandler<Stream> OnBinaryDataInputed;
-
+        Locker locker = new Locker();
+        
         /// <summary>
         /// text mode
         /// false => binary mode
@@ -111,14 +114,28 @@ namespace FileCommunication
         #region implementations
         protected virtual void OnText(String fullPath)
         {
-            if (OnTextInputed != null)
+            if (OnTextInputed != null || Waiter.WaiterList.Count > 0)
             {
                 for (int i = 0; i < 10; ++i)
                 {
                     try
                     {
                         String txt = File.ReadAllText(fullPath);
-                        OnTextInputed(this, txt);
+                        if (OnTextInputedWithPath != null)
+                        {
+                            if (OnTextInputedWithPath != null)
+                            {
+                                OnTextInputedWithPath(this, new KeyValuePair<String,String>(txt,fullPath));
+                            }
+                        }
+                        else
+                        {
+                            if (OnTextInputed != null)
+                            {
+                                OnTextInputed(this, txt);
+                            }
+                        }
+                        Waiter.NotifyAndRemove(txt);
                         break;
                     }
                     catch (Exception ee)
@@ -145,12 +162,16 @@ namespace FileCommunication
                 }
             }
         }
-        protected void WriteTo(String txt)
+        public void WriteTo(String txt, String givenFolder="")
         {
-            if (String.IsNullOrEmpty(OutputFolder)) return;
+            if (String.IsNullOrEmpty(givenFolder))
+            {
+                givenFolder = OutputFolder;
+            }
+            if (String.IsNullOrEmpty(givenFolder)) return;
             try
             {
-                File.WriteAllText(Path.Combine(OutputFolder, ProcessId.ToString() + ".out"), txt);
+                File.WriteAllText(Path.Combine(givenFolder, ProcessId.ToString() + ".out"), txt);
                 for (int i = 0; i < AdditionalOutput.Count; ++i)
                 {
                     File.WriteAllText(AdditionalOutput[i], txt);
@@ -189,17 +210,26 @@ namespace FileCommunication
         public void SetInputFolder(String mFolder)
         {
             mInputFolder = mFolder;
+            if (!Directory.Exists(mInputFolder))
+            {
+                Directory.CreateDirectory(mInputFolder);
+            }
         }
+
         public void SetOutputFolder(String mFolder)
         {
             mOutputFolder = mFolder;
+            if (!Directory.Exists(mOutputFolder))
+            {
+                Directory.CreateDirectory(mOutputFolder);
+            }
         }
         public Func<String> InputFolderDelegator;
         /// <summary>
         /// input folder provider
         /// </summary>
         /// <returns></returns>
-        protected virtual String GetInputFolder()
+        public virtual String GetInputFolder()
         {
             if (!String.IsNullOrEmpty(mInputFolder)) return mInputFolder;
             String folder = Environment.CurrentDirectory;
