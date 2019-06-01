@@ -35,7 +35,7 @@ using System.Threading.Tasks;
 
 namespace FileCommunication
 {
-    /// <summary>
+   /// <summary>
     /// file based communication
     /// so application can communicates across processes without 
     /// necessary to establish sockets and namedpipe
@@ -185,6 +185,15 @@ namespace FileCommunication
                 }
             }
         }
+        String mInputFolder;
+        public void SetInputFolder(String mFolder)
+        {
+            mInputFolder = mFolder;
+        }
+        public void SetOutputFolder(String mFolder)
+        {
+            mOutputFolder = mFolder;
+        }
         public Func<String> InputFolderDelegator;
         /// <summary>
         /// input folder provider
@@ -192,6 +201,7 @@ namespace FileCommunication
         /// <returns></returns>
         protected virtual String GetInputFolder()
         {
+            if (!String.IsNullOrEmpty(mInputFolder)) return mInputFolder;
             String folder = Environment.CurrentDirectory;
             if (InputFolderDelegator != null)
             {
