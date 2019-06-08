@@ -70,6 +70,10 @@
     <Reference Include="HtmlAgilityPack">
       <HintPath>Lib\HTMLAgility-Net40-client\HtmlAgilityPack.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Diagnostics.Runtime, Version=1.0.5.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>packages\Microsoft.Diagnostics.Runtime.1.0.5\lib\net45\Microsoft.Diagnostics.Runtime.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -85,6 +89,12 @@
     <Compile Include="AsyncTask.cs" />
     <Compile Include="BinaryParsers\PEHeaderParser.cs" />
     <Compile Include="ContentHTMLAgility.cs" />
+    <Compile Include="Coroutine\Coroutine.cs" />
+    <Compile Include="Coroutine\ProcessMonitor.cs" />
+    <Compile Include="Coroutine\ProcessStatusMeasure.cs" />
+    <Compile Include="Coroutine\Waiter\Client\IWaiter.cs" />
+    <Compile Include="Coroutine\Waiter\Server\WaiterHolder.cs" />
+    <Compile Include="DateUtils.cs" />
     <Compile Include="DisposableWrapper.cs" />
     <Compile Include="DynamicAttributes.cs" />
     <Compile Include="Excel\CSVFetcher.cs" />
@@ -92,15 +102,19 @@
     <Compile Include="Excel\ExcelFile.cs" />
     <Compile Include="Excel\ExcelImporter.cs" />
     <Compile Include="Excel\ExcelReaderFactory.cs" />
+    <Compile Include="FileCommunicator.cs" />
     <Compile Include="FileLockInfo.cs" />
     <Compile Include="IniConfigurationUI.cs" />
     <Compile Include="IniWriter.cs" />
     <Compile Include="Interfaces\IExcelReader.cs" />
     <Compile Include="Interfaces\IExcelReaderFactory.cs" />
+    <Compile Include="Interfaces\IProcessStatusMeasure.cs" />
     <Compile Include="JobQueue.cs" />
     <Compile Include="LRUDictionary.cs" />
     <Compile Include="MD5Directory.cs" />
+    <Compile Include="NativeDLLImport.cs" />
     <Compile Include="Network.cs" />
+    <Compile Include="ReflectionHelper.cs" />
     <Compile Include="RegistryHelper.cs" />
     <Compile Include="ScreenCapturer.cs">
       <SubType>UserControl</SubType>
@@ -187,6 +201,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Properties\" />

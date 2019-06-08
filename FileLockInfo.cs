@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using Utilities;
 
-namespace FileLockInfo
+namespace Utilities
 {
     public class Win32Processes
     {

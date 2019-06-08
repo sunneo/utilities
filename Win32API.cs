@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Utility
+namespace Utilities
 {
     public static class Win32API
     {
