@@ -116,7 +116,7 @@ namespace Utilities
         #region implementations
         protected virtual void OnText(String fullPath)
         {
-            if (OnTextInputed != null || Waiter.WaiterList.Count > 0)
+            if (OnTextInputed != null || OnTextInputedWithPath != null || Waiter.WaiterList.Count > 0)
             {
                 for (int i = 0; i < 10; ++i)
                 {

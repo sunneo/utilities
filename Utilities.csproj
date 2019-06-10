@@ -127,6 +127,9 @@
     <Compile Include="UI\BorderLessButton.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="UI\CalcDataGridView.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="UI\DataGridViewEx.cs">
       <SubType>Component</SubType>
     </Compile>
