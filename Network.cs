@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -19,6 +22,72 @@ namespace Utilities
         public static void FlushDnsCache()
         {
             UInt32 result = DnsFlushResolverCache();
+        }
+        private static bool IsExceptionGeneralNetworkFailure(Exception ex)
+        {
+            if (ex.InnerException != null)
+            {
+                if (ex.InnerException is Win32Exception)
+                {
+                    if (unchecked((uint)ex.InnerException.HResult) == 0x80004005)
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        private static bool HandleExceptionForGeneralFailure(out String strResponse, Exception ex, String strCmd)
+        {
+            strResponse = "";
+            return false;
+        }
+        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000)
+        {
+            strResponse = string.Empty;
+
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(strCmd);
+                request.Timeout = timeout;
+                ServicePointManager.ServerCertificateValidationCallback =
+                    delegate { return true; };
+                HttpWebResponse response = (HttpWebResponse)request.GetResponse();
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    Stream receiveStream = response.GetResponseStream();
+                    StreamReader readStream = null;
+                    if (response.CharacterSet == null || response.CharacterSet == "")
+                        readStream = new StreamReader(receiveStream);
+                    else
+                        readStream = new StreamReader(receiveStream, Encoding.GetEncoding(response.CharacterSet));
+
+                    strResponse = readStream.ReadToEnd();
+                    readStream.Close();
+                }
+                return true;
+            }
+            catch (WebException ex)
+            {
+                if (HandleExceptionForGeneralFailure(out strResponse, ex, strCmd))
+                {
+                    return !String.IsNullOrEmpty(strResponse);
+                }
+                strResponse = ex.Status.ToString() + " ";
+                strResponse += ex.Message;
+                return false;
+            }
+            catch (Exception ex)
+            {
+                if (HandleExceptionForGeneralFailure(out strResponse, ex, strCmd))
+                {
+                    return !String.IsNullOrEmpty(strResponse);
+                }
+                strResponse = ex.Message;
+                return false;
+            }
+
+            return true;
         }
         public static bool CanPing(String address, bool UseBusyWaiting = true, bool immediately = false, String fakeString = "")
         {
