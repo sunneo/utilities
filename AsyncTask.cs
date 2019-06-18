@@ -53,36 +53,35 @@ namespace Utilities
             badjob.FlushJob();
             Console.WriteLine("Bad Job-Available={0};IsFault={1}", goodjob.IsAvailable, goodjob.IsFault);
         }
-        public class AfterFinishJobArgs
+
+        #region PRIVATE CLASSES
+
+        private class AfterFinishJobArgs
         {
             public Control Ctrl;
             public object Action;
         }
-        public Dictionary<String, object> DynamicFields = new Dictionary<string, object>();
-        
-        object AfterFinishJobLocker = new object();
+        #endregion
+
+        #region PRIVATE FIELDS
+
         private LinkedList<AfterFinishJobArgs> AfterFinishJob = new LinkedList<AfterFinishJobArgs>();
-        private object ownedJob = null;
+        private object bgthreadLocker = new object();
+        private object AfterFinishJobLocker = new object();
+        private volatile Thread bgthread;
         private bool fromJobConstructor = false;
-        public bool IsAlive
-        {
-            get
-            {
-                if (bgthread == null)
-                {
-                    return false;
-                }
-                try
-                {
-                    return bgthread.IsAlive;
-                }
-                catch (Exception ee)
-                {
-                    Console.WriteLine(ee.ToString());
-                    return false;
-                }
-            }
-        }
+        private object ownedJob = null;
+        private volatile bool IsApartmentSet = false;
+        private ApartmentState apartment = ApartmentState.MTA;
+        private String mName = "";
+        #endregion
+        #region PUBLIC FIELDS
+
+        public Dictionary<String, object> DynamicFields = new Dictionary<string, object>();
+
+        #endregion
+
+        #region PRIVATE METHODS
         private bool ControlInvoker(Control ctrl, object job)
         {
             if (job != null)
@@ -165,6 +164,7 @@ namespace Utilities
                             Action<Dictionary<String, object>> asyncJob = (Action<Dictionary<String, object>>)ownedJob;
                             asyncJob(this.DynamicFields);
                         }
+                        ownedJob = null;
                     }
                 }
                 else
@@ -184,12 +184,19 @@ namespace Utilities
         private void jobFlusher()
         {
             while (PollAndRunJobAfterFinishJob()) ;
+            lock (AfterFinishJobLocker)
+            {
+                if (AfterFinishJob.Count > 0)
+                {
+                    AfterFinishJob.Clear();
+                }
+            }
         }
         private bool AsyncFlushJob()
         {
             lock (AfterFinishJobLocker)
             {
-                if (bgthread != null && bgthread.IsAlive) return false; // do not rerun 
+                if (IsAlive) return false; // do not rerun 
                 bgthread = new Thread(() => { jobFlusher(); bgthread = null; });
                 if (!String.IsNullOrEmpty(mName))
                 {
@@ -208,44 +215,14 @@ namespace Utilities
                 return true;
             }
         }
-        public bool TimedWait(int millis)
-        {
-            if (bgthread != null && bgthread.IsAlive)
-            {
-                return bgthread.Join(millis);
-            }
-            return true;
-        }
-        public void Wait()
-        {
-            if (bgthread != null && bgthread.IsAlive)
-            {
-                bgthread.Join();
-            }
-        }
-        public bool Join(int timeMills = -1)
-        {
-            if (bgthread == null || !bgthread.IsAlive) return true;
-            if (timeMills > 0)
-            {
-                return bgthread.Join(timeMills);
-            }
-            else
-            {
-                bgthread.Join();
-                return true;
-            }
-        }
-        private volatile Thread bgthread;
         private bool StartAsync()
         {
             lock (AfterFinishJobLocker)
             {
-                if (bgthread != null && bgthread.IsAlive) return false; // do not rerun 
+                if (IsAlive) return false; // do not rerun 
                 bgthread = new Thread(() =>
                 {
                     runner();
-
                 });
                 if (!String.IsNullOrEmpty(mName))
                 {
@@ -264,6 +241,13 @@ namespace Utilities
                 return true;
             }
         }
+        #endregion
+
+    
+
+    
+        
+        
 
         #region Main Job to Override
         //=============================================================
@@ -273,9 +257,10 @@ namespace Utilities
         }
         //============================================================
         #endregion
-
+        
         #region Constructors
-        private String mName = "";
+        
+        
         public AsyncTask()
         {
 
@@ -305,6 +290,28 @@ namespace Utilities
         public Exception FaultReason = null;
         public volatile bool IsAvailable = false;
         public volatile bool IsFault = false;
+        public bool IsAlive
+        {
+            get
+            {
+                lock (bgthreadLocker)
+                {
+                    if (bgthread == null)
+                    {
+                        return false;
+                    }
+                    try
+                    {
+                        return bgthread.IsAlive;
+                    }
+                    catch (Exception ee)
+                    {
+                        Console.WriteLine(ee.ToString());
+                        return false;
+                    }
+                }
+            }
+        }
         #endregion
 
         #region public methods
@@ -340,16 +347,17 @@ namespace Utilities
                 return AsyncFlushJob();
             }
         }
+
         /// <summary>
         /// it async thread was running, terminate it.
         /// </summary>
         public void StopAsync()
         {
-            if (bgthread != null && bgthread.IsAlive)
+            if (IsAlive)
             {
                 bgthread.Abort();
-                bgthread = null;
             }
+            bgthread = null;
         }
         /// <summary>
         /// add additional job into running thread
@@ -395,13 +403,22 @@ namespace Utilities
                 AfterFinishJob.AddLast(new AfterFinishJobArgs() { Ctrl = c, Action = l });
             }
         }
-        #endregion
+        
         public void Dispose()
         {
-            StopAsync();
+            ownedJob = null;
             ClearJob();
             StopAsync();
             IsFault = false;
+            mName = null;
+            try
+            {
+                DynamicFields = new Dictionary<string, object>();
+            }
+            catch (Exception ee)
+            {
+
+            }
         }
         public void ClearJob()
         {
@@ -411,12 +428,39 @@ namespace Utilities
             }
         }
 
-        volatile bool IsApartmentSet = false;
-        ApartmentState apartment = ApartmentState.MTA;
         public void SetApartment(ApartmentState apartment)
         {
             this.apartment = apartment;
             IsApartmentSet = true;
         }
+        public bool TimedWait(int millis)
+        {
+            if (IsAlive)
+            {
+                return bgthread.Join(millis);
+            }
+            return true;
+        }
+        public void Wait()
+        {
+            if (IsAlive)
+            {
+                bgthread.Join();
+            }
+        }
+        public bool Join(int timeMills = -1)
+        {
+            if (!IsAlive) return true;
+            if (timeMills > 0)
+            {
+                return bgthread.Join(timeMills);
+            }
+            else
+            {
+                bgthread.Join();
+                return true;
+            }
+        }
+        #endregion
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,34 @@ namespace Utilities
 {
     public class Utility
     {
+        public class JSON
+        {
+            public static T Deserialize<T>(String data)
+            {
+                try
+                {
+                    using (JsonTextReader txtReader = new JsonTextReader(new StringReader(data)))
+                    {
+                        JsonSerializer serializer = JsonSerializer.Create();
+                        return serializer.Deserialize<T>(txtReader);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return default(T);
+                }
+            }
+            public static String Serialize(object o)
+            {
+                StringBuilder strb = new StringBuilder();
+                using (JsonTextWriter writer = new JsonTextWriter(new StringWriter(strb)))
+                {
+                    JsonSerializer serializer = JsonSerializer.Create();
+                    serializer.Serialize(writer, o);
+                }
+                return strb.ToString();
+            }
+        }
         public static StreamReader SharedStreamReader(String filepath, Encoding _encoding)
         {
             FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);

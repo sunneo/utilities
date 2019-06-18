@@ -34,10 +34,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Utilities.Coroutine.Waiter.Server;
 using Utilities;
+using Utilities.Coroutine.Waiter.Client;
 
 namespace Utilities
 {
-   
+
     /// <summary>
     /// file based communication
     /// so application can communicates across processes without 
@@ -48,6 +49,24 @@ namespace Utilities
     /// </summary>
     public class FileCommunicator : IDisposable
     {
+        public static String GetWriteFileName()
+        {
+            return Process.GetCurrentProcess().Id.ToString() + "_t" + Thread.CurrentThread.ManagedThreadId.ToString() + ".out";
+        }
+        public class FileNameWaiter : IWaiter
+        {
+            public String ExpectedFileName;
+
+            public override bool CanRemove(object value)
+            {
+                if (value is String)
+                {
+                    String sval = (String)value;
+                    return (Path.GetFileName(sval).Equals(ExpectedFileName));
+                }
+                return base.CanRemove(value);
+            }
+        }
         #region Fields
         int mProcessId = -1;
         volatile bool mDisposed = false;
@@ -55,19 +74,19 @@ namespace Utilities
         volatile bool mTextMode = true;
         String mOutputFolder = "";
         #endregion
-        public WaiterHolder Waiter = new WaiterHolder();
+        public WaiterHolder<FileNameWaiter> Waiter = new WaiterHolder<FileNameWaiter>();
         /// <summary>
         /// on text content inputed
         /// </summary>
         public event EventHandler<String> OnTextInputed;
-        public event EventHandler<KeyValuePair<String,String>> OnTextInputedWithPath;
+        public event EventHandler<KeyValuePair<String, String>> OnTextInputedWithPath;
         /// <summary>
         /// on binary inputed
         /// (TextMode=false)
         /// </summary>
         public event EventHandler<Stream> OnBinaryDataInputed;
         Locker locker = new Locker();
-        
+
         /// <summary>
         /// text mode
         /// false => binary mode
@@ -127,7 +146,8 @@ namespace Utilities
                         {
                             if (OnTextInputedWithPath != null)
                             {
-                                OnTextInputedWithPath(this, new KeyValuePair<String,String>(txt,fullPath));
+                                OnTextInputedWithPath(this, new KeyValuePair<String, String>(txt, fullPath));
+                                Waiter.NotifyAndRemove(txt, fullPath);
                             }
                         }
                         else
@@ -135,9 +155,10 @@ namespace Utilities
                             if (OnTextInputed != null)
                             {
                                 OnTextInputed(this, txt);
+                                Waiter.NotifyAndRemove(txt);
                             }
                         }
-                        Waiter.NotifyAndRemove(txt);
+
                         break;
                     }
                     catch (Exception ee)
@@ -164,16 +185,25 @@ namespace Utilities
                 }
             }
         }
-        public void WriteTo(String txt, String givenFolder="")
+        public void WriteTo(String txt, String givenFolder = "", String filename = "")
         {
             if (String.IsNullOrEmpty(givenFolder))
             {
                 givenFolder = OutputFolder;
             }
+            if (String.IsNullOrEmpty(filename))
+            {
+                filename = GetWriteFileName();
+            }
             if (String.IsNullOrEmpty(givenFolder)) return;
             try
             {
-                File.WriteAllText(Path.Combine(givenFolder, ProcessId.ToString() + ".out"), txt);
+                if (!Directory.Exists(givenFolder))
+                {
+                    Directory.CreateDirectory(givenFolder);
+                }
+
+                File.WriteAllText(Path.Combine(givenFolder, filename), txt);
                 for (int i = 0; i < AdditionalOutput.Count; ++i)
                 {
                     File.WriteAllText(AdditionalOutput[i], txt);
@@ -330,11 +360,10 @@ namespace Utilities
         public void Dispose()
         {
             if (IsDisposed) return;
-            Stop();
+            IsDisposed = true;
             try
             {
-                Directory.Delete(GetInputFolder(), true);
-                Directory.Delete(OutputFolder, true);
+                Stop();
             }
             catch (Exception ee)
             {

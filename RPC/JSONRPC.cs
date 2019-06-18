@@ -1,0 +1,228 @@
+﻿using Newtonsoft.Json.Linq;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Utilities.Coroutine;
+
+namespace Utilities.RPC
+{
+    public interface IJsonRpcClient
+    {
+        JSONRPCMessage Invoke(JSONRPCMessage msg);
+        object Invoke(String name, params object[] args);
+    }
+    public class JsonRpcServerHandleEventArgs : EventArgs
+    {
+        public JSONRPCMessage Input;
+        public JSONRPCMessage Output;
+    }
+    public interface IJsonRpcServer
+    {
+        event EventHandler<JsonRpcServerHandleEventArgs> OnHandleRPC;
+        void Start();
+        void Stop();
+    }
+    public class JSONRPC
+    {
+        TextReader Reader;
+        TextWriter Writer;
+        internal class ClientImpl : IJsonRpcClient
+        {
+            JSONRPC mRPC;
+            public JSONRPCMessage Invoke(JSONRPCMessage msg)
+            {
+                mRPC.Send(msg);
+                JSONRPCMessage ret = null;
+                if (mRPC.TryGet(out ret))
+                {
+                    return ret;
+                }
+                return null;
+            }
+            public object Invoke(string name, params object[] args)
+            {
+                if (mRPC == null)
+                    return null;
+                mRPC.Send(name, args);
+                JSONRPCMessage ret = null;
+                if (mRPC.TryGet(out ret))
+                {
+                    return ret;
+                }
+                return null;
+            }
+            public ClientImpl(JSONRPC rpc)
+            {
+                mRPC = rpc;
+            }
+            public ClientImpl(TextReader reader, TextWriter writer)
+            {
+                mRPC = new JSONRPC(reader, writer);
+            }
+        }
+        internal class ServerImpl : IJsonRpcServer
+        {
+            JSONRPC mRPC;
+            CoroutineHost Host = new CoroutineHost(100);
+            Coroutine.Coroutine Cor;
+            volatile bool IsRunning = false;
+            public event EventHandler<JsonRpcServerHandleEventArgs> OnHandleRPC;
+            public ServerImpl(JSONRPC rpc)
+            {
+                this.mRPC = rpc;
+            }
+            public ServerImpl(TextReader reader, TextWriter writer)
+            {
+                mRPC = new JSONRPC(reader, writer);
+            }
+            IEnumerator Runner()
+            {
+                IsRunning = true;
+                if (OnHandleRPC != null)
+                {
+                    while (IsRunning)
+                    {
+                        JsonRpcServerHandleEventArgs args = new JsonRpcServerHandleEventArgs();
+                        if (mRPC.TryGet(out args.Input))
+                        {
+                            OnHandleRPC(this, args);
+                            mRPC.Send(args.Output);
+                        }
+                        yield return true;
+                    }
+                }
+                IsRunning = false;
+                yield break;
+            }
+            public void Start()
+            {
+                if (Cor == null)
+                {
+                    Cor = new Coroutine.Coroutine(50, this.Host);
+                }
+                Cor.QueueWorkingItem(Runner());
+            }
+            public void Stop()
+            {
+                IsRunning = false;
+                Cor.Dispose();
+                Host.Dispose();
+            }
+        }
+        public IJsonRpcClient Client()
+        {
+            return new ClientImpl(this);
+        }
+        public IJsonRpcServer Server()
+        {
+            return new ServerImpl(this);
+        }
+
+        public JSONRPC(TextReader reader, TextWriter writer)
+        {
+            this.Reader = reader;
+            this.Writer = writer;
+        }
+        public bool TryGet<T>(out T output) where T : class
+        {
+            String content = Reader.ReadLine();
+            if (String.IsNullOrEmpty(content))
+            {
+                output = null;
+                return false;
+            }
+            output = Utility.JSON.Deserialize<T>(content);
+            return output != null;
+        }
+        public void Send(JSONRPCMessage msg)
+        {
+            Writer.WriteLine(Utility.JSON.Serialize(msg));
+            Writer.Flush();
+        }
+        public void Send(String name, params object[] args)
+        {
+            JSONRPCMessage msg = new JSONRPCMessage(name, args);
+            Send(msg);
+        }
+        public JSONRPCMessage Invoke(String name, params object[] args)
+        {
+            JSONRPCMessage ret = null;
+            if (TryGet<JSONRPCMessage>(out ret))
+            {
+                return ret;
+            }
+            return new JSONRPCMessage();
+        }
+    }
+    public class Arguments
+    {
+        public List<object> args = new List<object>();
+        public void Assign(params object[] args)
+        {
+            if (args != null && args.Length > 0)
+            {
+                this.args.AddRange(args);
+            }
+        }
+        public int GetInt(int idx)
+        {
+            if (idx < args.Count)
+            {
+                return (int)(Int64)args[idx];
+            }
+            return -1;
+        }
+        public bool TryGetArrayArg<T>(int idx, out T[] outArray)
+        {
+            if (idx < args.Count)
+            {
+                if (args[idx] is JArray)
+                {
+                    JArray array = args[idx] as JArray;
+                    T[] ret = array.Values<T>().ToArray();
+                    outArray = ret;
+                    return true;
+                }
+            }
+            outArray = new T[0];
+            return false;
+        }
+    }
+    public class JSONRPCMessage
+    {
+        public String jsonrpc = "2.0";
+        public String id = "1";
+        public String method = "";
+        public Arguments Params = new Arguments();
+        public object Result = null;
+        public bool TryGetArrayArg<T>(int idx, out T[] outArray)
+        {
+            return Params.TryGetArrayArg<T>(idx, out outArray);
+        }
+        public bool TryGetArrayResult<T>(out T[] outArray)
+        {
+            if (Result is JArray)
+            {
+                JArray array = Result as JArray;
+                T[] ret = array.Values<T>().ToArray();
+                outArray = ret;
+                return true;
+            }
+            outArray = new T[0];
+            return false;
+        }
+        public JSONRPCMessage()
+        {
+
+        }
+        public JSONRPCMessage(String method, params object[] args)
+        {
+            this.method = method;
+            this.Params.Assign(args);
+        }
+    }
+}
