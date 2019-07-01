@@ -448,11 +448,11 @@ namespace Utilities
                             if (line[0] == '#') continue;
                             if (line.IndexOf('=') > -1)
                             {
-                                String[] splits = line.Split('=');
-                                if (splits.Length > 1)
+                                int idx = line.IndexOf('=');
+                                String k = line.Substring(0,idx).Trim();
+                                if (idx + 1 < line.Length)
                                 {
-                                    String k = splits[0].Trim();
-                                    String v = splits[1].Trim();
+                                    String v = line.Substring(idx + 1).Trim();
                                     List<String> list = null;
                                     if (Data.ContainsKey(k))
                                     {

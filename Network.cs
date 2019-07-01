@@ -42,7 +42,7 @@ namespace Utilities
             strResponse = "";
             return false;
         }
-        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000)
+        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding=null)
         {
             strResponse = string.Empty;
 
@@ -58,9 +58,20 @@ namespace Utilities
                     Stream receiveStream = response.GetResponseStream();
                     StreamReader readStream = null;
                     if (response.CharacterSet == null || response.CharacterSet == "")
-                        readStream = new StreamReader(receiveStream);
+                    {
+                        if (encoding != null)
+                        {
+                            readStream = new StreamReader(receiveStream, encoding);
+                        }
+                        else
+                        {
+                            readStream = new StreamReader(receiveStream);
+                        }
+                    }
                     else
+                    {
                         readStream = new StreamReader(receiveStream, Encoding.GetEncoding(response.CharacterSet));
+                    }
 
                     strResponse = readStream.ReadToEnd();
                     readStream.Close();
