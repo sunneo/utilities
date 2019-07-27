@@ -27,6 +27,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -34,7 +35,7 @@ using System.Windows.Forms;
 
 namespace Utilities
 {
-    public class AsyncTask : IDisposable
+    public class AsyncTask
     {
         /// <summary>
         /// Test Program
@@ -53,66 +54,106 @@ namespace Utilities
             badjob.FlushJob();
             Console.WriteLine("Bad Job-Available={0};IsFault={1}", goodjob.IsAvailable, goodjob.IsFault);
         }
-
-        #region PRIVATE CLASSES
-
-        private class AfterFinishJobArgs
+        public class AfterFinishJobArgs
         {
             public Control Ctrl;
             public object Action;
+            public CallerInfoClazz callerInfo = new CallerInfoClazz();
         }
-        #endregion
-
-        #region PRIVATE FIELDS
-
-        private LinkedList<AfterFinishJobArgs> AfterFinishJob = new LinkedList<AfterFinishJobArgs>();
-        private object bgthreadLocker = new object();
-        private object AfterFinishJobLocker = new object();
-        private volatile Thread bgthread;
-        private bool fromJobConstructor = false;
-        private object ownedJob = null;
-        private volatile bool IsApartmentSet = false;
-        private ApartmentState apartment = ApartmentState.MTA;
-        private String mName = "";
-        #endregion
-        #region PUBLIC FIELDS
-
         public Dictionary<String, object> DynamicFields = new Dictionary<string, object>();
-
-        #endregion
-
-        #region PRIVATE METHODS
-        private bool ControlInvoker(Control ctrl, object job)
+        public Dictionary<String, object> Args = new Dictionary<string, object>();
+        object AfterFinishJobLocker = new object();
+        private LinkedList<AfterFinishJobArgs> AfterFinishJob = new LinkedList<AfterFinishJobArgs>();
+        private object ownedJob = null;
+        private bool fromJobConstructor = false;
+        public volatile bool DisposeAfterFinish = false;
+        public class CallerInfoClazz
+        {
+            public String MemberName;
+            public String SourceCode;
+            public int Line;
+        }
+        public CallerInfoClazz CallerInfo = new CallerInfoClazz();
+        public bool IsAlive
+        {
+            get
+            {
+                if (bgthread == null)
+                {
+                    return false;
+                }
+                try
+                {
+                    return bgthread.IsAlive;
+                }
+                catch (Exception ee)
+                {
+                    Console.WriteLine(ee.ToString());
+                    return false;
+                }
+            }
+        }
+        private bool ControlInvoker(Control ctrl, object job, CallerInfoClazz info = null)
         {
             if (job != null)
             {
                 try
                 {
+                    if (this.CallerInfo != null)
+                    {
+                        this.CallerInfo = info;
+                    }
                     if (job is Action)
                     {
                         Action actionObj = (Action)job;
+                        EventHandler Invoker = null;
+                        Invoker = new EventHandler((object sender, EventArgs args) =>
+                        {
+                            if (sender is Control)
+                            {
+                                (sender as Control).HandleCreated -= Invoker;
+                            }
+                            ctrl.Invoke(actionObj);
+                        });
                         if (ctrl != null)
                         {
-                            ctrl.Invoke(actionObj);
+                            if (ctrl.IsHandleCreated && !ctrl.IsDisposed)
+                            {
+                                ctrl.Invoke(actionObj);
+                            }
+                            else if (!ctrl.IsHandleCreated)
+                            {
+                                ctrl.HandleCreated += Invoker;
+                            }
                         }
                         else
-                        {
                             actionObj();
-                        }
-
                     }
                     else if (job is Action<AsyncTask>)
                     {
                         Action<AsyncTask> asyncJob = (Action<AsyncTask>)job;
+                        EventHandler Invoker = null;
+                        Invoker = new EventHandler((object sender, EventArgs args) =>
+                        {
+                            if (sender is Control)
+                            {
+                                (sender as Control).HandleCreated -= Invoker;
+                            }
+                            ctrl.Invoke(asyncJob, this);
+                        });
                         if (ctrl != null)
                         {
-                            ctrl.Invoke(asyncJob, this);
+                            if (ctrl.IsHandleCreated && !ctrl.IsDisposed)
+                            {
+                                ctrl.Invoke(asyncJob, this);
+                            }
+                            else if (!ctrl.IsHandleCreated)
+                            {
+                                ctrl.HandleCreated += Invoker;
+                            }
                         }
                         else
-                        {
                             asyncJob(this);
-                        }
-
                     }
                 }
                 catch (Exception ee)
@@ -123,21 +164,24 @@ namespace Utilities
             }
             return false;
         }
+
         private bool PollAndRunJobAfterFinishJob()
         {
             object job = null;
             Control ctrl = null;
+            CallerInfoClazz callerInfo = null;
             lock (AfterFinishJobLocker)
             {
                 if (AfterFinishJob.Count > 0)
                 {
                     job = AfterFinishJob.First.Value.Action;
                     ctrl = AfterFinishJob.First.Value.Ctrl;
+                    callerInfo = AfterFinishJob.First.Value.callerInfo;
                     AfterFinishJob.RemoveFirst();
                 }
             }
 
-            return ControlInvoker(ctrl, job);
+            return ControlInvoker(ctrl, job, callerInfo);
         }
         private void runner()
         {
@@ -165,6 +209,7 @@ namespace Utilities
                             asyncJob(this.DynamicFields);
                         }
                         ownedJob = null;
+                        fromJobConstructor = false;
                     }
                 }
                 else
@@ -173,31 +218,31 @@ namespace Utilities
                 }
                 IsAvailable = true;
                 while (PollAndRunJobAfterFinishJob()) ;
+                if (DisposeAfterFinish)
+                {
+                    this.Dispose();
+                }
             }
             catch (Exception ee)
             {
                 IsFault = true;
                 FaultReason = ee;
-                System.Diagnostics.Debug.WriteLine(ee.ToString());
             }
         }
         private void jobFlusher()
         {
             while (PollAndRunJobAfterFinishJob()) ;
-            lock (AfterFinishJobLocker)
-            {
-                if (AfterFinishJob.Count > 0)
-                {
-                    AfterFinishJob.Clear();
-                }
-            }
         }
         private bool AsyncFlushJob()
         {
             lock (AfterFinishJobLocker)
             {
-                if (IsAlive) return false; // do not rerun 
+                if (bgthread != null && bgthread.IsAlive) return false; // do not rerun 
                 bgthread = new Thread(() => { jobFlusher(); bgthread = null; });
+                if (mApartment != ApartmentState.Unknown)
+                {
+                    bgthread.SetApartmentState(mApartment);
+                }
                 if (!String.IsNullOrEmpty(mName))
                 {
                     bgthread.Name = mName;
@@ -206,24 +251,54 @@ namespace Utilities
                 {
                     bgthread.Name = "AsyncThread";
                 }
-                if (IsApartmentSet)
-                {
-                    bgthread.SetApartmentState(this.apartment);
-                }
                 bgthread.IsBackground = true;
                 bgthread.Start();
                 return true;
             }
         }
+        public bool TimedWait(int millis)
+        {
+            if (bgthread != null && bgthread.IsAlive)
+            {
+                return bgthread.Join(millis);
+            }
+            return true;
+        }
+        public void Wait()
+        {
+            if (bgthread != null && bgthread.IsAlive)
+            {
+                bgthread.Join();
+            }
+        }
+        public bool Join(int timeMills = -1)
+        {
+            if (bgthread == null || !bgthread.IsAlive) return true;
+            if (timeMills > 0)
+            {
+                return bgthread.Join(timeMills);
+            }
+            else
+            {
+                bgthread.Join();
+                return true;
+            }
+        }
+        private volatile Thread bgthread;
         private bool StartAsync()
         {
             lock (AfterFinishJobLocker)
             {
-                if (IsAlive) return false; // do not rerun 
+                if (bgthread != null && bgthread.IsAlive) return false; // do not rerun 
                 bgthread = new Thread(() =>
                 {
                     runner();
+
                 });
+                if (mApartment != ApartmentState.Unknown)
+                {
+                    bgthread.SetApartmentState(mApartment);
+                }
                 if (!String.IsNullOrEmpty(mName))
                 {
                     bgthread.Name = mName;
@@ -232,22 +307,11 @@ namespace Utilities
                 {
                     bgthread.Name = "AsyncThread";
                 }
-                if (IsApartmentSet)
-                {
-                    bgthread.SetApartmentState(this.apartment);
-                }
                 bgthread.IsBackground = true;
                 bgthread.Start();
                 return true;
             }
         }
-        #endregion
-
-    
-
-    
-        
-        
 
         #region Main Job to Override
         //=============================================================
@@ -257,13 +321,20 @@ namespace Utilities
         }
         //============================================================
         #endregion
-        
+
         #region Constructors
-        
-        
+        private String mName = "";
         public AsyncTask()
         {
-
+        }
+        System.Threading.ApartmentState mApartment = ApartmentState.Unknown;
+        public void SetApartment(System.Threading.ApartmentState state)
+        {
+            mApartment = state;
+        }
+        public String GetName()
+        {
+            return mName;
         }
         public void SetName(String name)
         {
@@ -290,28 +361,6 @@ namespace Utilities
         public Exception FaultReason = null;
         public volatile bool IsAvailable = false;
         public volatile bool IsFault = false;
-        public bool IsAlive
-        {
-            get
-            {
-                lock (bgthreadLocker)
-                {
-                    if (bgthread == null)
-                    {
-                        return false;
-                    }
-                    try
-                    {
-                        return bgthread.IsAlive;
-                    }
-                    catch (Exception ee)
-                    {
-                        Console.WriteLine(ee.ToString());
-                        return false;
-                    }
-                }
-            }
-        }
         #endregion
 
         #region public methods
@@ -319,7 +368,7 @@ namespace Utilities
         /// start running
         /// </summary>
         /// <param name="blocking">when blocking is true, caller would block until job finished</param>
-        public void Start(bool blocking = true)
+        public void Start(bool blocking = false)
         {
             if (blocking)
             {
@@ -347,78 +396,111 @@ namespace Utilities
                 return AsyncFlushJob();
             }
         }
-
         /// <summary>
         /// it async thread was running, terminate it.
         /// </summary>
-        public void StopAsync()
+        public void StopAsync(bool avoidKillSelf = false)
         {
-            if (IsAlive)
+            if (bgthread != null && bgthread.IsAlive)
             {
-                bgthread.Abort();
-            }
-            bgthread = null;
-        }
-        /// <summary>
-        /// add additional job into running thread
-        /// </summary>
-        /// <param name="l">an action job which contains statements for running</param>
-        public void AddAfterFinishJob(Action l)
-        {
-            lock (AfterFinishJobLocker)
-            {
-                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Action = l });
-            }
-        }
-        /// <summary>
-        /// add additional job into running thread
-        /// </summary>
-        /// <param name="l">an action job which contains statements for running</param>
-        public void AddAfterFinishJob(Control c, Action l)
-        {
-            lock (AfterFinishJobLocker)
-            {
-                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Ctrl = c, Action = l });
-            }
-        }
-        /// <summary>
-        /// add additional job into running thread
-        /// </summary>
-        /// <param name="l">an action job which contains statements for running</param>
-        public void AddAfterFinishJob(Action<AsyncTask> l)
-        {
-            lock (AfterFinishJobLocker)
-            {
-                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Action = l });
-            }
-        }
-        /// <summary>
-        /// add additional job into running thread
-        /// </summary>
-        /// <param name="l">an action job which contains statements for running</param>
-        public void AddAfterFinishJob(Control c, Action<AsyncTask> l)
-        {
-            lock (AfterFinishJobLocker)
-            {
-                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Ctrl = c, Action = l });
-            }
-        }
-        
-        public void Dispose()
-        {
-            ownedJob = null;
-            ClearJob();
-            StopAsync();
-            IsFault = false;
-            mName = null;
-            try
-            {
-                DynamicFields = new Dictionary<string, object>();
-            }
-            catch (Exception ee)
-            {
+                bool canKill = true;
+                if (avoidKillSelf)
+                {
+                    canKill = (bgthread != Thread.CurrentThread);
+                }
+                if (canKill)
+                {
+                    try
+                    {
+                        if (bgthread != null) bgthread.Interrupt();
+                        if (bgthread != null) bgthread.Abort();
+                    }
+                    finally
+                    {
+                        bgthread = null;
+                    }
+                }
 
             }
+        }
+        public int QueueLength()
+        {
+            lock (AfterFinishJobLocker)
+            {
+                return AfterFinishJob.Count;
+            }
+        }
+        /// <summary>
+        /// add additional job into running thread
+        /// </summary>
+        /// <param name="l">an action job which contains statements for running</param>
+        public void AddAfterFinishJob(Action l,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            lock (AfterFinishJobLocker)
+            {
+                CallerInfoClazz info = new CallerInfoClazz() { Line = sourceLineNumber, MemberName = memberName, SourceCode = sourceFilePath };
+                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Action = l, callerInfo = info });
+            }
+        }
+        /// <summary>
+        /// add additional job into running thread
+        /// </summary>
+        /// <param name="l">an action job which contains statements for running</param>
+        public void AddAfterFinishJob(Control c, Action l,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            lock (AfterFinishJobLocker)
+            {
+                CallerInfoClazz info = new CallerInfoClazz() { Line = sourceLineNumber, MemberName = memberName, SourceCode = sourceFilePath };
+                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Ctrl = c, Action = l, callerInfo = info });
+            }
+        }
+        /// <summary>
+        /// add additional job into running thread
+        /// </summary>
+        /// <param name="l">an action job which contains statements for running</param>
+        public void AddAfterFinishJob(Action<AsyncTask> l,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            lock (AfterFinishJobLocker)
+            {
+                CallerInfoClazz info = new CallerInfoClazz() { Line = sourceLineNumber, MemberName = memberName, SourceCode = sourceFilePath };
+                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Action = l, callerInfo = info });
+            }
+        }
+        /// <summary>
+        /// add additional job into running thread
+        /// </summary>
+        /// <param name="l">an action job which contains statements for running</param>
+        public void AddAfterFinishJob(Control c, Action<AsyncTask> l,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
+        {
+            lock (AfterFinishJobLocker)
+            {
+                CallerInfoClazz info = new CallerInfoClazz() { Line = sourceLineNumber, MemberName = memberName, SourceCode = sourceFilePath };
+                AfterFinishJob.AddLast(new AfterFinishJobArgs() { Ctrl = c, Action = l, callerInfo = info });
+            }
+        }
+        #endregion
+
+
+
+        public void Dispose()
+        {
+            StopAsync();
+            ClearJob();
+            IsFault = false;
+            ownedJob = null;
+            CallerInfo = null;
         }
         public void ClearJob()
         {
@@ -427,40 +509,144 @@ namespace Utilities
                 AfterFinishJob.Clear();
             }
         }
+        public class TaskContinuable
+        {
+            internal AsyncTask CurrentTask;
 
-        public void SetApartment(ApartmentState apartment)
-        {
-            this.apartment = apartment;
-            IsApartmentSet = true;
-        }
-        public bool TimedWait(int millis)
-        {
-            if (IsAlive)
+            private static void ControlInvoke(Control ctrl, Action<AsyncTask> callback, AsyncTask task)
             {
-                return bgthread.Join(millis);
+                if (ctrl != null)
+                {
+                    EventHandler Invoker = null;
+                    Invoker = (object sender, EventArgs e) =>
+                    {
+                        ctrl.HandleCreated -= Invoker;
+                        callback(task);
+                    };
+                    if (ctrl.IsHandleCreated)
+                    {
+                        ctrl.Invoke(new Action(() =>
+                        {
+                            callback(task);
+                        }));
+                    }
+                    else
+                    {
+                        ctrl.HandleCreated += Invoker;
+                    }
+                }
             }
-            return true;
+            private static void ControlInvoke(Control ctrl, Action callback)
+            {
+                if (ctrl != null)
+                {
+                    EventHandler Invoker = null;
+                    Invoker = (object sender, EventArgs e) =>
+                    {
+                        ctrl.HandleCreated -= Invoker;
+                        callback();
+                    };
+                    if (ctrl.IsHandleCreated)
+                    {
+                        ctrl.Invoke(new Action(() =>
+                        {
+                            callback();
+                        }));
+                    }
+                    else
+                    {
+                        ctrl.HandleCreated += Invoker;
+                    }
+                }
+            }
+            public TaskContinuable Then(Action<AsyncTask> task,
+              [CallerMemberName] string memberName = "",
+              [CallerFilePath] string sourceFilePath = "",
+              [CallerLineNumber] int sourceLineNumber = 0)
+            {
+                if (CurrentTask != null && !CurrentTask.IsDisposed)
+                {
+                    CurrentTask.AddAfterFinishJob(task, memberName, sourceFilePath, sourceLineNumber);
+                    CurrentTask.FlushJob(false);
+                }
+                else
+                {
+                    task(CurrentTask);
+                }
+                return this;
+            }
+            public TaskContinuable Then(Action task,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
+            {
+                if (CurrentTask != null && !CurrentTask.IsDisposed)
+                {
+                    CurrentTask.AddAfterFinishJob(task, memberName, sourceFilePath, sourceLineNumber);
+                    CurrentTask.FlushJob(false);
+                }
+                else
+                {
+                    task();
+                }
+                return this;
+            }
+            public TaskContinuable Then(Control ctrl, Action<AsyncTask> task,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
+            {
+                if (CurrentTask != null && !CurrentTask.IsDisposed)
+                {
+                    CurrentTask.AddAfterFinishJob(ctrl, task, memberName, sourceFilePath, sourceLineNumber);
+                    CurrentTask.FlushJob(false);
+                }
+                else
+                {
+                    ControlInvoke(ctrl, task, CurrentTask);
+                }
+                return this;
+            }
+            public TaskContinuable Then(Control ctrl, Action task,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
+            {
+                if (CurrentTask != null && !CurrentTask.IsDisposed)
+                {
+                    CurrentTask.AddAfterFinishJob(task, memberName, sourceFilePath, sourceLineNumber);
+                    CurrentTask.FlushJob(false);
+                }
+                else
+                {
+                    ControlInvoke(ctrl, task);
+                }
+                return this;
+            }
         }
-        public void Wait()
+        public static TaskContinuable QueueWorkingItem(Action action,
+                [CallerMemberName] string memberName = "",
+                [CallerFilePath] string sourceFilePath = "",
+                [CallerLineNumber] int sourceLineNumber = 0)
         {
-            if (IsAlive)
-            {
-                bgthread.Join();
-            }
+            AsyncTask task = new AsyncTask(action);
+            task.CallerInfo.MemberName = memberName;
+            task.CallerInfo.SourceCode = sourceFilePath;
+            task.CallerInfo.Line = sourceLineNumber;
+            TaskContinuable continueItem = new TaskContinuable();
+            task.DisposeAfterFinish = true;
+            continueItem.CurrentTask = task;
+            task.SetName("Async-QueueWorkingItem");
+            task.Start(false);
+            return continueItem;
         }
-        public bool Join(int timeMills = -1)
+        volatile bool IsDisposed = false;
+        ~AsyncTask()
         {
-            if (!IsAlive) return true;
-            if (timeMills > 0)
+            if (!IsDisposed)
             {
-                return bgthread.Join(timeMills);
-            }
-            else
-            {
-                bgthread.Join();
-                return true;
+                Dispose();
             }
         }
-        #endregion
     }
 }
