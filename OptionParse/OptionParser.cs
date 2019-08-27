@@ -166,6 +166,7 @@ namespace Utilities.OptionParse
     /// </summary>
     public class RawStringParser : OptionParserUnit<String>
     {
+        public List<String> Values = new List<string>();
         public RawStringParser(String key = "")
             : base(key, null)
         {
@@ -174,7 +175,13 @@ namespace Utilities.OptionParse
         public override void Parse(string Value)
         {
             base.Parse(Value);
-            this.Value = Value;
+            String newValue = Value;
+            if (ParseDelegator != null)
+            {
+                newValue = ParseDelegator(Value);
+            }
+            this.Value = newValue;
+            this.Values.Add(newValue);
         }
     }
 
