@@ -389,7 +389,7 @@ namespace Utilities.Sys
         }
         public static String GetUniqueString()
         {
-            return String.Join("/", MotherboardInfo.Manufacturer, MotherboardInfo.Product, MotherboardInfo.SerialNumber);
+            return String.Join("/", MotherboardInfo.Manufacturer, MotherboardInfo.Product, MotherboardInfo.SerialNumber, MotherboardInfo.Version);
         }
     }
 }
