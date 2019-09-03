@@ -614,7 +614,7 @@ namespace Utilities
             {
                 if (CurrentTask != null && !CurrentTask.IsDisposed)
                 {
-                    CurrentTask.AddAfterFinishJob(task, memberName, sourceFilePath, sourceLineNumber);
+                    CurrentTask.AddAfterFinishJob(ctrl, task, memberName, sourceFilePath, sourceLineNumber);
                     CurrentTask.FlushJob(false);
                 }
                 else
