@@ -30,7 +30,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OptionParser.Attributes
+namespace Utilities.OptionParser.Attributes
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class ArgumentDescAttribute : Attribute

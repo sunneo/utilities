@@ -32,7 +32,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OptionParser.OptionParse
+namespace Utilities.OptionParser.OptionParse
 {
 
     /// <summary>

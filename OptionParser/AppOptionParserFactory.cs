@@ -1,4 +1,5 @@
-﻿/*
+﻿
+/*
 * Copyright (c) 2019-2020 [Open Source Developer, Sunneo].
 * All rights reserved.
 * Redistribution and use in source and binary forms, with or without
@@ -30,7 +31,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OptionParser
+namespace Utilities.OptionParser
 {
     /// <summary>
     /// option parser collection 

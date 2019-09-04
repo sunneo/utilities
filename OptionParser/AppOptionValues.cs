@@ -30,7 +30,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace OptionParser
+namespace Utilities.OptionParser
 {
     /// <summary>
     /// Application options
