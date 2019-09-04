@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Utilities.Coroutine;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -6,13 +7,14 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Utilities.Coroutine;
 
 namespace Utilities.RPC
 {
     public interface IJsonRpcClient
     {
+        bool IsInvoking { get; }
         JSONRPCMessage Invoke(JSONRPCMessage msg);
+        JSONRPCMessage<T> TypedInvoke<T>(JSONRPCMessage msg) where T : class;
         object Invoke(String name, params object[] args);
     }
     public class JsonRpcServerHandleEventArgs : EventArgs
@@ -30,28 +32,45 @@ namespace Utilities.RPC
     {
         TextReader Reader;
         TextWriter Writer;
+
         internal class ClientImpl : IJsonRpcClient
         {
+            volatile bool mInvoking = false;
+            object channelLocker = new object();
             JSONRPC mRPC;
             public JSONRPCMessage Invoke(JSONRPCMessage msg)
             {
-                mRPC.Send(msg);
-                JSONRPCMessage ret = null;
-                if (mRPC.TryGet(out ret))
+                lock (channelLocker)
                 {
-                    return ret;
+                    mInvoking = true;
+                    mRPC.Send(msg);
+                    JSONRPCMessage ret = null;
+                    if (mRPC.TryGet(out ret))
+                    {
+                        mInvoking = false;
+                        return ret;
+                    }
+                    mInvoking = false;
                 }
                 return null;
             }
             public object Invoke(string name, params object[] args)
             {
                 if (mRPC == null)
-                    return null;
-                mRPC.Send(name, args);
-                JSONRPCMessage ret = null;
-                if (mRPC.TryGet(out ret))
                 {
-                    return ret;
+                    return null;
+                }
+                lock (channelLocker)
+                {
+                    mInvoking = true;
+                    mRPC.Send(name, args);
+                    JSONRPCMessage ret = null;
+                    if (mRPC.TryGet(out ret))
+                    {
+                        mInvoking = false;
+                        return ret;
+                    }
+                    mInvoking = false;
                 }
                 return null;
             }
@@ -62,6 +81,33 @@ namespace Utilities.RPC
             public ClientImpl(TextReader reader, TextWriter writer)
             {
                 mRPC = new JSONRPC(reader, writer);
+            }
+
+            public bool IsInvoking
+            {
+                get { return mInvoking; }
+            }
+
+
+            public JSONRPCMessage<T> TypedInvoke<T>(JSONRPCMessage msg) where T : class
+            {
+                if (mRPC == null)
+                {
+                    return null;
+                }
+                lock (channelLocker)
+                {
+                    mInvoking = true;
+                    mRPC.Send(msg);
+                    JSONRPCMessage<T> ret = null;
+                    if (mRPC.TryGet(out ret))
+                    {
+                        mInvoking = false;
+                        return ret;
+                    }
+                    mInvoking = false;
+                }
+                return null;
             }
         }
         internal class ServerImpl : IJsonRpcServer
@@ -192,13 +238,24 @@ namespace Utilities.RPC
             return false;
         }
     }
-    public class JSONRPCMessage
+    public class JSONRPCMessage : JSONRPCMessage<Object>
+    {
+        public JSONRPCMessage()
+        {
+
+        }
+        public JSONRPCMessage(String method, params object[] args)
+            : base(method, args)
+        {
+        }
+    }
+    public class JSONRPCMessage<T> where T : class
     {
         public String jsonrpc = "2.0";
         public String id = "1";
         public String method = "";
         public Arguments Params = new Arguments();
-        public object Result = null;
+        public T Result = null;
         public bool TryGetArrayArg<T>(int idx, out T[] outArray)
         {
             return Params.TryGetArrayArg<T>(idx, out outArray);
