@@ -212,12 +212,18 @@ namespace Utilities
                 OnSerializeArgs.Reader = reader;
                 OnSerializeArgs.Field = field;
                 OnSerializeArgs.Target = ret;
-                
+                if (field.IsLiteral) continue;
+                NonSerializedAttribute[] nonSerialize = (NonSerializedAttribute[])field.GetCustomAttributes(typeof(NonSerializedAttribute), false);
+                if (nonSerialize != null && nonSerialize.Length > 0)
+                {
+                    continue;
+                }
                 if (field.IsPublic)
                 {
                     var fieldType = field.FieldType;
                     String name = prefix + field.Name;
                     OnSerializeArgs.FullName = name;
+                    
                     if (fieldType.IsPrimitive)
                     {
                         if (fieldType == typeof(int))

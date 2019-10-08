@@ -26,6 +26,7 @@
 */
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -67,15 +68,15 @@ namespace Utilities
             }
             if (lines.Count == 1)
             {
-                Lines.Add("*  " + lines[0]);
+                Lines.Add("#  " + lines[0]);
             }
             else
             {
-                String separator = "*".PadLeft(maxLength+3, '*');
+                String separator = "#".PadLeft(maxLength+3, '#');
                 Lines.Add(separator);
                 foreach (String s in lines)
                 {
-                    Lines.Add("*  "+s);
+                    Lines.Add("#  "+s);
                 }
                 Lines.Add(separator);
             }
@@ -157,6 +158,19 @@ namespace Utilities
                         if (fieldType == typeof(DBNull)) continue;
                         String name = prefix + field.Name;
                         object val = field.GetValue(ret);
+                        NonSerializedAttribute[] nonSerialize = (NonSerializedAttribute[])field.GetCustomAttributes(typeof(NonSerializedAttribute), false);
+                        if (nonSerialize != null && nonSerialize.Length > 0)
+                        {
+                            continue;
+                        }
+                        DescriptionAttribute[] attrs = (DescriptionAttribute[])field.GetCustomAttributes(typeof(DescriptionAttribute), false);
+                        if (attrs != null)
+                        {
+                            for (int i = 0; i < attrs.Length; ++i)
+                            {
+                                WriteComment(attrs[i].Description);
+                            }
+                        }
                         if (GivenValue != null && GivenValue.ContainsKey(name))
                         {
                             val = GivenValue[name];
