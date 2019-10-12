@@ -8,8 +8,18 @@ namespace Utilities
 {
     public class Var<T>
     {
-        Locked<T> m_Value = new Locked<T>(default(T));
+        T m_Value = default(T);
         public event EventHandler<T> ValueChanged;
+        public bool HasValue
+        {
+            get;
+            private set;
+        }
+        public bool Changed
+        {
+            get;
+            private set;
+        }
         protected virtual void NotifyValueChanged()
         {
             if (ValueChanged != null)
@@ -21,11 +31,14 @@ namespace Utilities
         {
             get
             {
-                return m_Value.Value;
+                Changed = false;
+                return m_Value;
             }
             set
             {
-                m_Value.Value = value;
+                m_Value = value;
+                Changed = true;
+                HasValue = true;
                 NotifyValueChanged();
             }
         }
@@ -35,6 +48,7 @@ namespace Utilities
         public Var(T val)
         {
             this.Value = val;
+            HasValue = true;
         }
         public static implicit operator Var<T>(T t)
         {
