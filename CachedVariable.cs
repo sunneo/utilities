@@ -32,18 +32,14 @@ namespace Utilities
         {
             get
             {
-                using (var locker = mLocker.Lock())
-                {
-                    return mValue;
-                }
+                return mLocker.Synchronized<T>(() => mValue);
             }
             set
             {
-                using (var locker = mLocker.Lock())
-                {
+                mLocker.Synchronized(() => {
                     Updated = true;
                     mValue = value;
-                }
+                });
             }
         }
 

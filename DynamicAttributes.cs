@@ -17,7 +17,31 @@ namespace Utilities
             this.locked = bLocked;
             mLocker = new Locker(this.locked);
         }
-
+        public void Clear()
+        {
+            mLocker.Synchronized(() =>
+            {
+                Attributes.Clear();
+            });
+        }
+        public int Count
+        {
+            get
+            {
+                return mLocker.Synchronized(() =>Attributes.Count);
+            }
+        }
+        public object this[String idx]
+        {
+            get
+            {
+                return GetAttribute(idx);
+            }
+            set
+            {
+                SetAttribute(idx, value);
+            }
+        }
         public void RemoveAttribute(String key)
         {
             mLocker.Synchronized(() =>

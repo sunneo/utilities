@@ -8,10 +8,31 @@ namespace Utilities
 {
     public class IniConfiguration<T>
     {
-
+        public event EventHandler Updated;
         public T Data;
         String FileName;
         FileSystemWatcher mWatcher = null;
+        volatile bool ShouldNotify = true;
+        public void Save()
+        {
+            try
+            {
+                ShouldNotify = false;
+                IniWriter writer = new IniWriter();
+                writer.FileName = FileName;
+                writer.Serialize(Data);
+                writer.Save();
+                writer.Close();
+            }
+            catch (Exception ee)
+            {
+                
+            }
+            finally
+            {
+                ShouldNotify = true;
+            }
+        }
         private IniConfiguration(String filename, bool alwaysUpdate)
         {
             this.FileName = filename;
@@ -43,6 +64,13 @@ namespace Utilities
                     if (e.Name.Equals(Path.GetFileName(FileName)))
                     {
                         this.Data = IniReader.Deserialize<T>(FileName);
+                        if (ShouldNotify)
+                        {
+                            if (Updated != null)
+                            {
+                                Updated(this, EventArgs.Empty);
+                            }
+                        }
                     }
                 }
             }

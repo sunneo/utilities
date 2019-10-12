@@ -93,8 +93,11 @@
   <ItemGroup>
     <Compile Include="AsyncTask.cs" />
     <Compile Include="BinaryParsers\PEHeaderParser.cs" />
+    <Compile Include="CachedVariable.cs" />
     <Compile Include="ContentHTMLAgility.cs" />
+    <Compile Include="Coroutine\Cancellable.cs" />
     <Compile Include="Coroutine\Coroutine.cs" />
+    <Compile Include="Interfaces\ICancellable.cs" />
     <Compile Include="Coroutine\ProcessMonitor.cs" />
     <Compile Include="Coroutine\ProcessStatusMeasure.cs" />
     <Compile Include="Coroutine\Waiter\Client\IWaiter.cs" />
@@ -109,6 +112,7 @@
     <Compile Include="Excel\ExcelReaderFactory.cs" />
     <Compile Include="FileCommunicator.cs" />
     <Compile Include="FileLockInfo.cs" />
+    <Compile Include="IniConfiguration.cs" />
     <Compile Include="IniConfigurationUI.cs" />
     <Compile Include="IniWriter.cs" />
     <Compile Include="Interfaces\ICanInvalidate.cs" />
@@ -197,6 +201,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Utility.cs" />
+    <Compile Include="Var.cs" />
     <Compile Include="Virtual\FSMContext.cs" />
     <Compile Include="Virtual\interfaces\IInstructionFactory.cs" />
     <Compile Include="Virtual\interfaces\IVMFiniteStateMachine.cs" />

@@ -292,8 +292,15 @@ namespace Utilities
                 if (bgthread != null && bgthread.IsAlive) return false; // do not rerun 
                 bgthread = new Thread(() =>
                 {
-                    runner();
-
+                    try
+                    {
+                        runner();
+                    }
+                    catch (ThreadAbortException aborted)
+                    {
+                        IsCancelled = true;
+                        Thread.ResetAbort();
+                    }
                 });
                 if (mApartment != ApartmentState.Unknown)
                 {
@@ -370,6 +377,7 @@ namespace Utilities
         /// <param name="blocking">when blocking is true, caller would block until job finished</param>
         public void Start(bool blocking = false)
         {
+            IsCancelled = false;
             if (blocking)
             {
                 runner();
@@ -395,6 +403,11 @@ namespace Utilities
             {
                 return AsyncFlushJob();
             }
+        }
+        public volatile bool IsCancelled = false;
+        public void Cancel()
+        {
+            IsCancelled = true;
         }
         /// <summary>
         /// it async thread was running, terminate it.
