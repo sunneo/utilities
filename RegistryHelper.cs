@@ -154,5 +154,29 @@ namespace Utilities
                 return false;
             }
         }
+        public static IEnumerable<String> EnumSubKeys(int type, String key)
+        {
+            RegistryKey hkml = null;
+
+            if (type == 0)
+            {
+                hkml = Registry.LocalMachine;
+            }
+            else if (type == 1)
+            {
+                hkml = Registry.CurrentUser;
+            }
+            else
+            {
+                yield break;
+            }
+
+            RegistryKey key_node = hkml.OpenSubKey(key, false);
+            foreach (String s in key_node.GetSubKeyNames())
+            {
+                yield return s;
+            }
+            yield break;
+        }
     }
 }
