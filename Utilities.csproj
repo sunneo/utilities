@@ -200,6 +200,7 @@
     <Compile Include="UI\TextBoxEx.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="UndoRedoStack.cs" />
     <Compile Include="Utility.cs" />
     <Compile Include="Var.cs" />
     <Compile Include="Virtual\FSMContext.cs" />
