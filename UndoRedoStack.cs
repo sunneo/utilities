@@ -7,21 +7,114 @@ using System.Threading.Tasks;
 
 namespace Utilities
 {
-    public class UndoRedoStack<T>
+    public interface IUndoRedo<T>
     {
-        bool doTrackTextChange = true;
-        List<T> StatusStack = new List<T>();
-        int StackPoint = -1;
-        int m_TrackFrequency = 100;
-        bool TrackUndoRedo = true;
-        DateTime TextChangeTime;
-        public event EventHandler<T> OnUndoRedo;
-        public event EventHandler<bool> OnCanUndoChanged;
-        public event EventHandler<bool> OnCanRedoChanged;
+        event EventHandler<T> OnUndoRedo;
+        event EventHandler<bool> OnCanUndoChanged;
+        event EventHandler<bool> OnCanRedoChanged;
+
         /// <summary>
         /// frequency to track undo/redo, default to 100 ms
         /// </summary>
-        [Description("Frequency to track text change")]
+        [Description("Frequency to track change")]
+        int TrackFrequency { get; set; }
+
+        /// <summary>
+        /// Track text change
+        /// </summary>
+        [Description("Track Change To Stack(default:false)")]
+        bool IsChangeTracked { get; set; }
+
+        /// <summary>
+        /// Test whether Can Undo
+        /// </summary>
+        bool CanUndo { get; }
+       
+        /// <summary>
+        /// Test whether Can Redo
+        /// </summary>
+        bool CanRedo { get; }
+
+        /// <summary>
+        /// undo change
+        /// </summary>
+        void Undo();
+
+        /// <summary>
+        /// redo change
+        /// </summary>
+        void Redo();
+
+        /// <summary>
+        /// push change into stack
+        /// </summary>
+        /// <param name="content">content to change/track</param>
+        void PushChange(T change);
+        
+        /// <summary>
+        /// empty undo/redo buffer
+        /// </summary>
+        void EmptyUndoRedoBuffer();
+    }
+    public class StackPointMaintainer
+    {
+        protected virtual int Count()
+        {
+            return 0;
+        }
+        protected int StackPoint = -1;
+        protected virtual bool CheckCanUndo()
+        {
+            return StackPoint > 0;
+        }
+        protected virtual bool CheckCanRedo()
+        {
+            return StackPoint + 1 <= Count();
+        }
+        protected virtual int PeekUndo()
+        {
+            return StackPoint - 1;
+        }
+        protected virtual int PeekRedo()
+        {
+            return StackPoint;
+        }
+        protected virtual void MoveUndo()
+        {
+            --StackPoint;
+        }
+        protected virtual void MoveRedo()
+        {
+            ++StackPoint;
+        }
+    }
+    public class UndoRedoStack<T>: StackPointMaintainer, IUndoRedo<T>
+    {
+#region PRIVATE fields
+        bool m_IsTrackChange = false;
+        List<T> StatusStack = new List<T>();
+        int m_TrackFrequency = 100;
+        bool shouldTrackUndoRedo = true;
+        DateTime TextChangeTime;
+        bool m_CanUndo;
+        bool m_CanRedo;
+        protected override int Count()
+        {
+            return StatusStack.Count;
+        }
+#endregion
+
+#region PUBLIC events
+        public event EventHandler<T> OnUndoRedo;
+        public event EventHandler<bool> OnCanUndoChanged;
+        public event EventHandler<bool> OnCanRedoChanged;
+#endregion
+
+#region PROPERTIES
+        /// <summary>
+        /// frequency to track undo/redo, default to 100 ms
+        /// </summary>
+        [Description("Frequency to track change")]
         public int TrackFrequency
         {
             get
@@ -37,49 +130,53 @@ namespace Utilities
         /// <summary>
         /// Track text change
         /// </summary>
-        [Description("是否追蹤文字變動到堆疊(預設:false)")]
-        public bool IsTextChangeTracked
+        [Description("Track Change To Stack(default:false)")]
+        public bool IsChangeTracked
         {
             get
             {
-                return doTrackTextChange;
+                return m_IsTrackChange;
             }
             set
             {
-                doTrackTextChange = value;
+                m_IsTrackChange = value;
             }
         }
 
-        bool m_CanUndo;
-        bool m_CanRedo;
-
+      
+        /// <summary>
+        /// Test whether Can Undo
+        /// </summary>
         public bool CanUndo
         {
             get
             {
                 return m_CanUndo;
-               
+
             }
-            set
+            private set
             {
                 bool oldValue = m_CanUndo;
                 m_CanUndo = value;
                 if (oldValue != m_CanUndo)
                 {
-                    if (OnCanRedoChanged != null)
+                    if (OnCanUndoChanged != null)
                     {
-                        OnCanRedoChanged(this, value);
+                        OnCanUndoChanged(this, value);
                     }
                 }
             }
         }
+        /// <summary>
+        /// Test whether Can Redo
+        /// </summary>
         public bool CanRedo
         {
             get
             {
-                return m_CanRedo;  
+                return m_CanRedo;
             }
-            set
+            private set
             {
                 bool oldValue = m_CanRedo;
                 m_CanRedo = value;
@@ -92,58 +189,61 @@ namespace Utilities
                 }
             }
         }
-        private bool CheckCanUndo()
-        {
-            return StackPoint > 0;
-        }
-        private bool CheckCanRedo()
-        {
-            return StackPoint + 1 < StatusStack.Count;
-        }
-
+#endregion
+#region PUBLIC methods
+        /// <summary>
+        /// redo change
+        /// </summary>
         public void Redo()
         {
-            TrackUndoRedo = false;
+            shouldTrackUndoRedo = false;
             CanRedo = CheckCanRedo();
             if (!CanRedo)
             {
-                TrackUndoRedo = true;
+                shouldTrackUndoRedo = true;
                 return;
             }
-            T content = StatusStack[StackPoint + 1];
-            ++StackPoint;
+            T content = StatusStack[PeekRedo()];
+            MoveRedo();
             if (OnUndoRedo != null)
             {
                 OnUndoRedo(this, content);
             }
             CanUndo = CheckCanUndo();
             CanRedo = CheckCanRedo();
-            TrackUndoRedo = true;
+            shouldTrackUndoRedo = true;
         }
+        /// <summary>
+        /// undo change
+        /// </summary>
         public void Undo()
         {
-            TrackUndoRedo = false;
+            shouldTrackUndoRedo = false;
             CanUndo = CheckCanUndo();
             if (!CanUndo)
             {
-                TrackUndoRedo = true;
+                shouldTrackUndoRedo = true;
                 return;
             }
-            T content = StatusStack[StackPoint - 1];
-            --StackPoint;
+            T content = StatusStack[PeekUndo()];
+            MoveUndo();
             if (OnUndoRedo != null)
             {
                 OnUndoRedo(this, content);
             }
             CanUndo = CheckCanUndo();
             CanRedo = CheckCanRedo();
-            TrackUndoRedo = true;
+            shouldTrackUndoRedo = true;
         }
-        public void PerformPushChange(T content)
+        /// <summary>
+        /// push change into stack
+        /// </summary>
+        /// <param name="content">content to change/track</param>
+        public void PushChange(T content)
         {
-            if (doTrackTextChange)
+            if (m_IsTrackChange)
             {
-                if (!TrackUndoRedo)
+                if (!shouldTrackUndoRedo)
                 {
                     return;
                 }
@@ -163,5 +263,16 @@ namespace Utilities
                 CanRedo = CheckCanRedo();
             }
         }
+        /// <summary>
+        /// empty undo/redo buffer
+        /// </summary>
+        public void EmptyUndoRedoBuffer()
+        {
+            this.StackPoint = -1;
+            this.StatusStack.Clear();
+            this.CanRedo = false;
+            this.CanRedo = false;
+        }
+#endregion
     }
 }
