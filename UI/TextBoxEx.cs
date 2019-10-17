@@ -62,14 +62,14 @@ namespace Utilities.UI
         {
             get
             {
-                return TextBoxUndoRedoTracker.IsTextChangeTracked;
+                return TextBoxUndoRedoTracker.IsChangeTracked;
             }
             set
             {
-                TextBoxUndoRedoTracker.IsTextChangeTracked = value;
+                TextBoxUndoRedoTracker.IsChangeTracked = value;
                 if (value)
                 {
-                    TextBoxUndoRedoTracker.PerformPushChange(this.Text);
+                    TextBoxUndoRedoTracker.PushChange(this.Text);
                 }
             }
         }
@@ -105,7 +105,7 @@ namespace Utilities.UI
         protected override void OnTextChanged(EventArgs e)
         {
             base.OnTextChanged(e);
-            TextBoxUndoRedoTracker.PerformPushChange(this.Text);
+            TextBoxUndoRedoTracker.PushChange(this.Text);
         }
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {

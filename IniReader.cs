@@ -118,7 +118,42 @@ namespace Utilities
             Main2();
         }
         public Dictionary<String, List<String>> Data = new Dictionary<string, List<String>>();
-
+        public int[] GetIntsFromString(String name)
+        {
+            String s = GetString(name);
+            if (String.IsNullOrEmpty(s))
+            {
+                if (String.IsNullOrEmpty(name))
+                {
+                    return null;
+                }
+                else
+                {
+                    if (name.IndexOf(',') > -1)
+                    {
+                        s = name;
+                    }
+                }
+            }
+            if (s.IndexOf(',') > -1)
+            {
+                String[] splits = s.Split(',');
+                int len = splits.Length;
+                int[] ret = new int[len];
+                for (int i = 0; i < len; ++i)
+                {
+                    int.TryParse(splits[i], out ret[i]);
+                }
+                return ret;
+            }
+            else
+            {
+                int dummy = 0;
+                int.TryParse(s, out dummy);
+                return new int[] { dummy };
+            }
+            return null;
+        }
         public double GetDouble(String name, double defaultValue = 0)
         {
             List<String> list = GetList(name);
