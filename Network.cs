@@ -42,7 +42,7 @@ namespace Utilities
             strResponse = "";
             return false;
         }
-        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding=null)
+        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding=null, CookieContainer cookie=null)
         {
             strResponse = string.Empty;
 
@@ -50,6 +50,10 @@ namespace Utilities
             {
                 HttpWebRequest request = (HttpWebRequest)WebRequest.Create(strCmd);
                 request.Timeout = timeout;
+                if (cookie != null)
+                {
+                    request.CookieContainer = cookie;
+                }
                 ServicePointManager.ServerCertificateValidationCallback =
                     delegate { return true; };
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
