@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -17,6 +17,7 @@ namespace Utilities
         /// frequency to track undo/redo, default to 100 ms
         /// </summary>
         [Description("Frequency to track change")]
+        [DefaultValue(50)]
         int TrackFrequency { get; set; }
 
         /// <summary>
@@ -28,11 +29,13 @@ namespace Utilities
         /// <summary>
         /// Test whether Can Undo
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         bool CanUndo { get; }
-       
+
         /// <summary>
         /// Test whether Can Redo
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         bool CanRedo { get; }
 
         /// <summary>
@@ -50,7 +53,7 @@ namespace Utilities
         /// </summary>
         /// <param name="content">content to change/track</param>
         void PushChange(T change);
-        
+
         /// <summary>
         /// empty undo/redo buffer
         /// </summary>
@@ -62,10 +65,10 @@ namespace Utilities
         {
             return 0;
         }
-        protected int StackPoint = -1;
+        protected int StackPoint = 0;
         protected virtual bool CheckCanUndo()
         {
-            return StackPoint > 0;
+            return StackPoint - 1 >= 0 && Count() > 0;
         }
         protected virtual bool CheckCanRedo()
         {
@@ -73,7 +76,14 @@ namespace Utilities
         }
         protected virtual int PeekUndo()
         {
-            return StackPoint - 1;
+            if (StackPoint - 1 >= 0)
+            {
+                return StackPoint - 1;
+            }
+            else
+            {
+                return 0;
+            }
         }
         protected virtual int PeekRedo()
         {
@@ -88,12 +98,12 @@ namespace Utilities
             ++StackPoint;
         }
     }
-    public class UndoRedoStack<T>: StackPointMaintainer, IUndoRedo<T>
+    public class UndoRedoStack<T> : StackPointMaintainer, IUndoRedo<T>
     {
-#region PRIVATE fields
+        #region PRIVATE fields
         bool m_IsTrackChange = false;
         List<T> StatusStack = new List<T>();
-        int m_TrackFrequency = 100;
+        int m_TrackFrequency = 50;
         bool shouldTrackUndoRedo = true;
         DateTime TextChangeTime;
         bool m_CanUndo;
@@ -102,19 +112,20 @@ namespace Utilities
         {
             return StatusStack.Count;
         }
-#endregion
+        #endregion
 
-#region PUBLIC events
+        #region PUBLIC events
         public event EventHandler<T> OnUndoRedo;
         public event EventHandler<bool> OnCanUndoChanged;
         public event EventHandler<bool> OnCanRedoChanged;
-#endregion
+        #endregion
 
-#region PROPERTIES
+        #region PROPERTIES
         /// <summary>
         /// frequency to track undo/redo, default to 100 ms
         /// </summary>
         [Description("Frequency to track change")]
+        [DefaultValue(50)]
         public int TrackFrequency
         {
             get
@@ -143,10 +154,11 @@ namespace Utilities
             }
         }
 
-      
+
         /// <summary>
         /// Test whether Can Undo
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool CanUndo
         {
             get
@@ -170,6 +182,7 @@ namespace Utilities
         /// <summary>
         /// Test whether Can Redo
         /// </summary>
+        [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public bool CanRedo
         {
             get
@@ -189,8 +202,8 @@ namespace Utilities
                 }
             }
         }
-#endregion
-#region PUBLIC methods
+        #endregion
+        #region PUBLIC methods
         /// <summary>
         /// redo change
         /// </summary>
@@ -248,14 +261,16 @@ namespace Utilities
                     return;
                 }
                 DateTime now = DateTime.Now;
-                if (now.Subtract(TextChangeTime).TotalMilliseconds < m_TrackFrequency)
+                if (CheckCanUndo() && now.Subtract(TextChangeTime).TotalMilliseconds < m_TrackFrequency)
                 {
                     return;
                 }
                 TextChangeTime = now;
-                if (StackPoint != -1 && StackPoint != StatusStack.Count - 1)
+                if (StackPoint != -1 && StackPoint != StatusStack.Count)
                 {
-                    StatusStack.RemoveRange(StackPoint, (StatusStack.Count - StackPoint));
+                    int len = StatusStack.Count - StackPoint - 1;
+
+                    StatusStack.RemoveRange(StackPoint + 1, len);
                 }
                 StatusStack.Add(content);
                 ++StackPoint;
@@ -268,11 +283,14 @@ namespace Utilities
         /// </summary>
         public void EmptyUndoRedoBuffer()
         {
-            this.StackPoint = -1;
+            this.StackPoint = 0;
             this.StatusStack.Clear();
+
             this.CanRedo = false;
             this.CanRedo = false;
+            this.TextChangeTime = DateTime.Now;
         }
-#endregion
+
+        #endregion
     }
 }
