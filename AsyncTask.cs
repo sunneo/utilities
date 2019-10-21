@@ -220,6 +220,7 @@ namespace Utilities
                 while (PollAndRunJobAfterFinishJob()) ;
                 if (DisposeAfterFinish)
                 {
+                    RunningDisposeAfterFinish = true;
                     this.Dispose();
                 }
             }
@@ -229,6 +230,7 @@ namespace Utilities
                 FaultReason = ee;
             }
         }
+        volatile bool RunningDisposeAfterFinish = false;
         private void jobFlusher()
         {
             while (PollAndRunJobAfterFinishJob()) ;
@@ -509,7 +511,10 @@ namespace Utilities
 
         public void Dispose()
         {
-            StopAsync();
+            if (!RunningDisposeAfterFinish)
+            {
+                StopAsync();
+            }
             ClearJob();
             IsFault = false;
             ownedJob = null;
