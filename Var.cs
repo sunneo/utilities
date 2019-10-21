@@ -58,7 +58,10 @@ namespace Utilities
         {
             return t.Value;
         }
-        
+        public override string ToString()
+        {
+            return Value.ToString();
+        }
        
     }
 }

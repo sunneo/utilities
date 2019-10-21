@@ -263,23 +263,35 @@ namespace Utilities
                     {
                         if (fieldType == typeof(int))
                         {
-                            object val = reader.GetInt(name);
+                            int val = reader.GetInt(name);
                             field.SetValue(ret, val);
                             FieldValue = val;
                         }
                         else if (fieldType == typeof(bool))
                         {
-                            object val = reader.GetBoolean(name);
+                            bool val = reader.GetBoolean(name);
                             field.SetValue(ret, val);
                             FieldValue = val;
                         }
                         else if (fieldType == typeof(double))
                         {
-                            object val = reader.GetDouble(name);
+                            double val = reader.GetDouble(name);
                             field.SetValue(ret, val);
                             FieldValue = val;
                         }
-                        
+                        else if (fieldType.IsEnum)
+                        {
+                            try
+                            {
+                                String sval = reader.GetString(name);
+                                object enumVal = Enum.Parse(fieldType, sval);
+                                field.SetValue(ret, enumVal);
+                            }
+                            catch (Exception)
+                            {
+
+                            }
+                        }
                         
                     }
                     else if (fieldType == typeof(string))
@@ -375,6 +387,19 @@ namespace Utilities
                             field.SetValue(ret, new Point(x, y));
                         }
                         FieldValue = val;
+                    }
+                    else if (fieldType.IsEnum)
+                    {
+                        try
+                        {
+                            String sval = reader.GetString(name);
+                            object enumVal = Enum.Parse(fieldType, sval);
+                            field.SetValue(ret, enumVal);
+                        }
+                        catch (Exception)
+                        {
+
+                        }
                     }
                     else if(fieldType.IsClass)
                     {

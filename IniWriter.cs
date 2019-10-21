@@ -190,6 +190,10 @@ namespace Utilities
                             {
                                 Write(name, (double)val);
                             }
+                            else if(fieldType.IsEnum)
+                            {
+                                Write(name, (string)val);
+                            }
                         }
                         else if (fieldType == typeof(string))
                         {
@@ -218,6 +222,10 @@ namespace Utilities
                         else if (fieldType == typeof(Point))
                         {
                             Write(name, (Point)val);
+                        }
+                        else if (fieldType.IsEnum)
+                        {
+                            Write(name, (string)val.ToString());
                         }
                         else if (fieldType.IsClass)
                         {
