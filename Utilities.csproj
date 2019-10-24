@@ -162,6 +162,9 @@
     <Compile Include="UI\DoubleBufferedPanel.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="UI\DoubleBufferedTabPage.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="UI\DoubleBufferListView.cs">
       <SubType>Component</SubType>
     </Compile>
