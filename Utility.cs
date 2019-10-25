@@ -19,7 +19,7 @@ namespace Utilities
                 {
                     using (JsonTextReader txtReader = new JsonTextReader(new StringReader(data)))
                     {
-                        JsonSerializer serializer = JsonSerializer.Create();
+                        JsonSerializer serializer = new JsonSerializer();
                         return serializer.Deserialize<T>(txtReader);
                     }
                 }
@@ -33,7 +33,7 @@ namespace Utilities
                 StringBuilder strb = new StringBuilder();
                 using (JsonTextWriter writer = new JsonTextWriter(new StringWriter(strb)))
                 {
-                    JsonSerializer serializer = JsonSerializer.Create();
+                    JsonSerializer serializer = new JsonSerializer();
                     serializer.Serialize(writer, o);
                 }
                 return strb.ToString();
