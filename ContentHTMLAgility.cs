@@ -249,4 +249,11 @@ namespace Utilities
         }
 
     }
+    public static class ExtensionAgility
+    {
+        public static HtmlAgilityPack.HtmlNodeCollection GetElementsByClassName(this HtmlAgilityPack.HtmlNode pthis, String className)
+        {
+            return pthis.SelectNodes("//*[contains(@class,'" + className + "')]");
+        }
+    }
 }
