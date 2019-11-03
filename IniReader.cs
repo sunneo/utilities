@@ -118,6 +118,8 @@ namespace Utilities
             Main2();
         }
         public Dictionary<String, List<String>> Data = new Dictionary<string, List<String>>();
+
+        public Dictionary<String, String> FieldSectionMapper = new Dictionary<string, string>();
         public int[] GetIntsFromString(String name)
         {
             String s = GetString(name);
@@ -235,6 +237,7 @@ namespace Utilities
             public String FullName;
             public Object Target;
             public Object FieldValue;
+            public String Section;
         }
         public static void DeserializeFields(IniReader reader, object ret, String prefix = "", EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
         {
@@ -423,6 +426,10 @@ namespace Utilities
                         }
                     }
                     OnSerializeArgs.FieldValue = FieldValue;
+                    if (reader.FieldSectionMapper.ContainsKey(name))
+                    {
+                        OnSerializeArgs.Section = reader.FieldSectionMapper[name];
+                    }
                     if (OnSerializingMember != null)
                     {
                         OnSerializingMember(reader, OnSerializeArgs);
@@ -500,6 +507,7 @@ namespace Utilities
             }
             return new List<double>();
         }
+        String CurrentCategory = "";
         private void ParseStream(TextReader fs)
         {
             {
@@ -513,6 +521,18 @@ namespace Utilities
                         if (!String.IsNullOrEmpty(line))
                         {
                             if (line[0] == '#') continue;
+                            if (line[0] == '[')
+                            {
+                                String[] splits = line.Split('[', ']');
+                                if (splits.Length > 1)
+                                {
+                                    String sec = splits[1];
+                                    if (!CurrentCategory.Equals(sec))
+                                    {
+                                        CurrentCategory = sec;
+                                    }
+                                }
+                            }
                             if (line.IndexOf('=') > -1)
                             {
                                 int idx = line.IndexOf('=');
@@ -531,6 +551,7 @@ namespace Utilities
                                         Data[k] = list;
                                     }
                                     list.Add(v);
+                                    FieldSectionMapper[k] = CurrentCategory;
                                 }
                             }
                         }

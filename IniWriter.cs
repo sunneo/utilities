@@ -51,6 +51,11 @@ namespace Utilities
             writer.FileName = file;
             return writer;
         }
+        
+        public void WriteCategory(String category)
+        {
+            this.Lines.Add("[" + category + "]");
+        }
         public void WriteComment(String content)
         {
             StringReader reader = new StringReader(content);

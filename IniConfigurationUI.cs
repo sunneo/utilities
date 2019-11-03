@@ -49,10 +49,21 @@ namespace Utilities
         Dictionary<String, IniReader.OnSerializeNotificationEventArgs> FieldDeserializeMap = new Dictionary<string, IniReader.OnSerializeNotificationEventArgs>();
         Dictionary<String, List<String>> FieldCategoryMap = new Dictionary<string, List<String>>();
 
+        public class CustomFormEditEventArg : EventArgs
+        {
+            public IniReader.OnSerializeNotificationEventArgs SerializeArg;
+            public string DisplayName="";
+            public string Description = "";
+            public String FieldName = "";
+            public object Value;
+            public bool Handled;
+        }
+        public event EventHandler<CustomFormEditEventArg> OnCustomForm;
         public IniConfigurationUI(String filename)
         {
             this.TargetFileName = filename;
         }
+        public bool ShowAll = false;
         public Form BuildForm(String title="")
         {
             UI.SaveConfigurationTemplateForm ret = new UI.SaveConfigurationTemplateForm();
@@ -66,11 +77,12 @@ namespace Utilities
                 title = this.TargetFileName;
             }
             ret.Text = title;
+            ret.TipText = "設定(點選欄位/標籤可以看到欄位敘述)";
 
-            
 
             foreach (String g in FieldCategoryMap.Keys)
             {
+
                 GroupBox gbox = new GroupBox();
                 groupBoxs.Add(gbox);
                 gbox.Margin = new Padding(3);
@@ -95,13 +107,15 @@ namespace Utilities
                 {
                     gbox.Text = g;
                 }
+
                 int row = 0;
+
                 foreach (String name in names)
                 {
                     IniReader.OnSerializeNotificationEventArgs arg = FieldDeserializeMap[name];
                     if (arg.Field.FieldType.IsClass)
                     {
-                        if(arg.Field.FieldType != typeof(String) 
+                        if (arg.Field.FieldType != typeof(String)
                            && arg.Field.FieldType != typeof(Rectangle)
                             && arg.Field.FieldType != typeof(Size)
                             && arg.Field.FieldType != typeof(Point)
@@ -111,27 +125,31 @@ namespace Utilities
                             continue;
                         }
                     }
+
                     FieldDisplayNameAttribute displayName = (FieldDisplayNameAttribute)arg.Field.GetCustomAttribute(typeof(FieldDisplayNameAttribute), true);
                     DescriptionAttribute description = (DescriptionAttribute)arg.Field.GetCustomAttribute(typeof(DescriptionAttribute), true);
                     CategoryAttribute category = (CategoryAttribute)arg.Field.GetCustomAttribute(typeof(CategoryAttribute), true);
                     AttributeConfigureUIVisible visible = (AttributeConfigureUIVisible)arg.Field.GetCustomAttribute(typeof(AttributeConfigureUIVisible), true);
-                    
+
                     RowStyle rs = new RowStyle();
-                    if (visible == null || visible.Visible)
+                    if (ShowAll || visible == null || visible.Visible)
                     {
                         tablelayout.RowStyles.Add(rs);
                         rs.SizeType = SizeType.Absolute;
                         rs.Height = 30;
                     }
-                    EventHandler focusHandler = new EventHandler((object s, EventArgs e) => {
-                        if (description != null)
-                        {
-                            ret.TipText = description.Description;
-                        }
-                        else
-                        {
-                            ret.TipText = name;
-                        }
+                    String descriptionTxt = "";
+                    if (description != null)
+                    {
+                        descriptionTxt = description.Description;
+                    }
+                    else
+                    {
+                        descriptionTxt = name;
+                    }
+                    EventHandler focusHandler = new EventHandler((object s, EventArgs e) =>
+                    {
+                        ret.TipText = descriptionTxt;
                     });
                     Panel left = new Panel();
                     Panel right = new Panel();
@@ -145,9 +163,9 @@ namespace Utilities
                     {
                         strname = arg.FullName;
                     }
-                    if (displayName != null )
+                    if (displayName != null)
                     {
-                        nameLabel.Text = String.Format("{0}({1})",displayName.DisplayName,strname);
+                        nameLabel.Text = String.Format("{0}({1})", displayName.DisplayName, strname);
                     }
                     else
                     {
@@ -159,7 +177,7 @@ namespace Utilities
                     left.Controls.Add(nameLabel);
                     IniReader reader = arg.Reader;
                     Type fieldType = arg.Field.FieldType;
-                 
+
                     if (fieldType == typeof(Color))
                     {
                         Button btn = new Button();
@@ -211,10 +229,27 @@ namespace Utilities
                             tbox.Tag = arg.FullName;
                             tbox.Text = (String)arg.FieldValue.ToString();
                             tbox.GotFocus += focusHandler;
+                            tbox.Click += (s, e) =>
+                            {
+                                if (OnCustomForm != null)
+                                {
+                                    CustomFormEditEventArg args = new CustomFormEditEventArg();
+                                    args.FieldName = name;
+                                    args.DisplayName = strname;
+                                    args.Description = descriptionTxt;
+                                    args.Value = tbox.Text;
+                                    args.SerializeArg = arg;
+                                    OnCustomForm(this, args);
+                                    if (args.Handled)
+                                    {
+                                        tbox.Text = args.Value.ToString();
+                                    }
+                                }
+                            };
                             this.DataFieldControl.Add(tbox);
                         }
                     }
-                    if (visible == null || visible.Visible)
+                    if (ShowAll || visible == null || visible.Visible)
                     {
                         tablelayout.Height += ((int)(rs.Height));
 
@@ -428,6 +463,10 @@ namespace Utilities
             }
             FieldDeserializeMap[args.FullName] = args;
             String category = GetPropertyCategory(args.Field);
+            if (!String.IsNullOrEmpty(args.Section))
+            {
+                category = args.Section;
+            }
             List<String> fullNameList = new List<string>();
             if (!FieldCategoryMap.ContainsKey(category))
             {
@@ -437,6 +476,7 @@ namespace Utilities
             {
                 fullNameList = FieldCategoryMap[category];
             }
+           
             fullNameList.Add(args.FullName);
         }
         
