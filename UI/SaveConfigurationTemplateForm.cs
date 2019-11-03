@@ -13,11 +13,34 @@ namespace Utilities.UI
     public partial class SaveConfigurationTemplateForm : Form
     {
         public event EventHandler OKClicked;
+
         public Panel MainPanel
         {
             get
             {
                 return panel2;
+            }
+        }
+        public bool TipTextVisible
+        {
+            get
+            {
+                return panel3.Visible;
+            }
+            set
+            {
+                panel3.Visible = value;
+            }
+        }
+        public String TipText
+        {
+            get
+            {
+                return label1.Text;
+            }
+            set
+            {
+                label1.Text = value;
             }
         }
         public SaveConfigurationTemplateForm()

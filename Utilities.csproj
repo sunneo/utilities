@@ -130,6 +130,8 @@
     <Compile Include="OptionParser\AppOptionParserFactory.cs" />
     <Compile Include="OptionParser\AppOptionValues.cs" />
     <Compile Include="OptionParser\Attributes\ArgumentDescAttribute.cs" />
+    <Compile Include="OptionParser\Attributes\AttributeConfigureUIVisible.cs" />
+    <Compile Include="OptionParser\Attributes\FieldDisplayNameAttribute.cs" />
     <Compile Include="OptionParser\OptionParse\DynamicTryParse.cs" />
     <Compile Include="OptionParser\OptionParse\OptionParser.cs" />
     <Compile Include="OptionParser\OptionParse\OptionParserUnit.cs" />
@@ -174,6 +176,12 @@
     </Compile>
     <Compile Include="UI\DoubleBufferTreeView.cs">
       <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="UI\EnvironmentSettingTemplate.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UI\EnvironmentSettingTemplate.Designer.cs">
+      <DependentUpon>EnvironmentSettingTemplate.cs</DependentUpon>
     </Compile>
     <Compile Include="UI\InputBox.cs">
       <SubType>Form</SubType>
@@ -221,6 +229,9 @@
     <Compile Include="Server\MediaServerInstance.cs" />
     <Compile Include="Server\OnServerConnectionEventArgs.cs" />
     <Compile Include="Server\ServerHolder.cs" />
+    <EmbeddedResource Include="UI\EnvironmentSettingTemplate.resx">
+      <DependentUpon>EnvironmentSettingTemplate.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="UI\InputBox.resx">
       <DependentUpon>InputBox.cs</DependentUpon>
     </EmbeddedResource>

@@ -395,6 +395,7 @@ namespace Utilities
                             String sval = reader.GetString(name);
                             object enumVal = Enum.Parse(fieldType, sval);
                             field.SetValue(ret, enumVal);
+                            FieldValue = sval;
                         }
                         catch (Exception)
                         {

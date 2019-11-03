@@ -36,6 +36,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Utilities.OptionParser.Attributes;
 using Utilities.UI;
 
 namespace Utilities
@@ -47,6 +48,7 @@ namespace Utilities
         List<Control> DataFieldControl = new List<Control>();
         Dictionary<String, IniReader.OnSerializeNotificationEventArgs> FieldDeserializeMap = new Dictionary<string, IniReader.OnSerializeNotificationEventArgs>();
         Dictionary<String, List<String>> FieldCategoryMap = new Dictionary<string, List<String>>();
+
         public IniConfigurationUI(String filename)
         {
             this.TargetFileName = filename;
@@ -55,6 +57,7 @@ namespace Utilities
         {
             UI.SaveConfigurationTemplateForm ret = new UI.SaveConfigurationTemplateForm();
             DataFieldControl.Clear();
+            ToolTip tip = new ToolTip();
             
             this.Value = IniReader.Deserialize<T>(this.TargetFileName,HandleDeserializeField);
             List<GroupBox> groupBoxs = new List<GroupBox>();
@@ -63,6 +66,9 @@ namespace Utilities
                 title = this.TargetFileName;
             }
             ret.Text = title;
+
+            
+
             foreach (String g in FieldCategoryMap.Keys)
             {
                 GroupBox gbox = new GroupBox();
@@ -105,11 +111,28 @@ namespace Utilities
                             continue;
                         }
                     }
-                    RowStyle rs = new RowStyle();
-                    tablelayout.RowStyles.Add(rs);
-                    rs.SizeType = SizeType.Absolute;
-                    rs.Height = 30;
+                    FieldDisplayNameAttribute displayName = (FieldDisplayNameAttribute)arg.Field.GetCustomAttribute(typeof(FieldDisplayNameAttribute), true);
+                    DescriptionAttribute description = (DescriptionAttribute)arg.Field.GetCustomAttribute(typeof(DescriptionAttribute), true);
+                    CategoryAttribute category = (CategoryAttribute)arg.Field.GetCustomAttribute(typeof(CategoryAttribute), true);
+                    AttributeConfigureUIVisible visible = (AttributeConfigureUIVisible)arg.Field.GetCustomAttribute(typeof(AttributeConfigureUIVisible), true);
                     
+                    RowStyle rs = new RowStyle();
+                    if (visible == null || visible.Visible)
+                    {
+                        tablelayout.RowStyles.Add(rs);
+                        rs.SizeType = SizeType.Absolute;
+                        rs.Height = 30;
+                    }
+                    EventHandler focusHandler = new EventHandler((object s, EventArgs e) => {
+                        if (description != null)
+                        {
+                            ret.TipText = description.Description;
+                        }
+                        else
+                        {
+                            ret.TipText = name;
+                        }
+                    });
                     Panel left = new Panel();
                     Panel right = new Panel();
                     left.Dock = DockStyle.Fill;
@@ -122,9 +145,17 @@ namespace Utilities
                     {
                         strname = arg.FullName;
                     }
-                    nameLabel.Text = strname;
+                    if (displayName != null )
+                    {
+                        nameLabel.Text = String.Format("{0}({1})",displayName.DisplayName,strname);
+                    }
+                    else
+                    {
+                        nameLabel.Text = strname;
+                    }
                     nameLabel.Dock = DockStyle.Fill;
                     nameLabel.TextAlign = System.Drawing.ContentAlignment.TopRight;
+                    nameLabel.Click += focusHandler;
                     left.Controls.Add(nameLabel);
                     IniReader reader = arg.Reader;
                     Type fieldType = arg.Field.FieldType;
@@ -138,25 +169,62 @@ namespace Utilities
                         btn.Click += btn_colorPickerClick;
                         right.Controls.Add(btn);
                         btn.Tag = arg.FullName;
+                        btn.GotFocus += focusHandler;
                         this.DataFieldControl.Add(btn);
+                    }
+                    else if (fieldType == typeof(bool))
+                    {
+                        ComboBox cbox = new ComboBox();
+                        cbox.DropDownStyle = ComboBoxStyle.DropDownList;
+                        cbox.Items.Add("false");
+                        cbox.Items.Add("true");
+                        cbox.Dock = DockStyle.Fill;
+                        cbox.Text = (String)arg.FieldValue.ToString().ToLower();
+                        right.Controls.Add(cbox);
+                        cbox.Tag = arg.FullName;
+                        cbox.GotFocus += focusHandler;
+                        this.DataFieldControl.Add(cbox);
                     }
                     else
                     {
-                        TextBoxEx tbox = new TextBoxEx();
-                        tbox.Size = new Size(100, (int)(rs.Height));
-                        tbox.Dock = DockStyle.Fill;
-                        right.Controls.Add(tbox);
-                        tbox.Tag = arg.FullName;
-                        tbox.Text = (String)arg.FieldValue.ToString();
-                        this.DataFieldControl.Add(tbox);
+                        if (fieldType.IsEnum)
+                        {
+                            ComboBox cbox = new ComboBox();
+                            cbox.DropDownStyle = ComboBoxStyle.DropDownList;
+                            var enumNames = fieldType.GetEnumNames();
+                            cbox.Items.AddRange(enumNames);
+                            cbox.Dock = DockStyle.Fill;
+
+                            cbox.Text = (String)arg.FieldValue.ToString();
+                            right.Controls.Add(cbox);
+                            cbox.Tag = arg.FullName;
+                            cbox.GotFocus += focusHandler;
+                            this.DataFieldControl.Add(cbox);
+                        }
+                        else
+                        {
+                            TextBoxEx tbox = new TextBoxEx();
+                            tbox.Size = new Size(100, (int)(rs.Height));
+                            tbox.Dock = DockStyle.Fill;
+                            tbox.IsChangeTracked = true;
+                            right.Controls.Add(tbox);
+                            tbox.Tag = arg.FullName;
+                            tbox.Text = (String)arg.FieldValue.ToString();
+                            tbox.GotFocus += focusHandler;
+                            this.DataFieldControl.Add(tbox);
+                        }
                     }
-                    tablelayout.Height += ((int)(rs.Height));
-                    tablelayout.Controls.Add(left);
-                    tablelayout.Controls.Add(right);
-                    
-                    tablelayout.SetCellPosition(left, new TableLayoutPanelCellPosition(0, row));
-                    tablelayout.SetCellPosition(right, new TableLayoutPanelCellPosition(1, row));
-                    ++row;
+                    if (visible == null || visible.Visible)
+                    {
+                        tablelayout.Height += ((int)(rs.Height));
+
+                        tablelayout.Controls.Add(left);
+                        tablelayout.Controls.Add(right);
+
+                        tablelayout.SetCellPosition(left, new TableLayoutPanelCellPosition(0, row));
+                        tablelayout.SetCellPosition(right, new TableLayoutPanelCellPosition(1, row));
+                        ++row;
+                    }
                 }
                 tablelayout.Dock = DockStyle.Fill;
                 gbox.Height = tablelayout.Height;
@@ -194,9 +262,19 @@ namespace Utilities
                 IniReader.OnSerializeNotificationEventArgs arg = FieldDeserializeMap[fullName];
                 Object value = null;
 
+                bool textBased = false;
                 if (c is TextBox)
                 {
                     value = ((TextBox)c).Text;
+                    textBased=true;
+                }
+                else if(c is ComboBox)
+                {
+                    value = ((ComboBox)c).Text;
+                    textBased=true;
+                }
+                if(textBased)
+                { 
                     if (arg.Field.FieldType == typeof(int))
                     {
                         int ival = default(int);
@@ -225,6 +303,19 @@ namespace Utilities
                             sz.Height = list[1];
                         }
                         value = sz;
+                    }
+                    else if (arg.Field.FieldType.IsEnum)
+                    {
+                        try
+                        {
+                            String sval = (String)value.ToString();
+                            object enumVal = Enum.Parse(arg.Field.FieldType, sval);
+                            value = sval;
+                        }
+                        catch (Exception)
+                        {
+
+                        }
                     }
                     else if (arg.Field.FieldType == typeof(Point))
                     {
