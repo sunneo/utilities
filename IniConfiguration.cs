@@ -41,7 +41,7 @@ namespace Utilities
                 String extension = Path.GetExtension(filename);
                 mWatcher = new FileSystemWatcher();
                 mWatcher.BeginInit();
-                mWatcher.Path = Path.GetDirectoryName(filename);
+                mWatcher.Path = Path.GetDirectoryName(Path.GetFullPath(filename));
                 mWatcher.InternalBufferSize = 64;
                 mWatcher.NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite | NotifyFilters.CreationTime;
                 if (!String.IsNullOrEmpty(extension))

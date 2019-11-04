@@ -17,7 +17,7 @@ namespace Utilities
         public bool HasValue
         {
             get;
-            internal set;
+            set;
         }
         public bool Changed
         {
