@@ -25,8 +25,39 @@ namespace Utilities
             get;
             internal set;
         }
-
-        public BaseVar Chain(BaseVar pthis, Action<ChainActionArgs> action, params BaseVar[] others)
+        /// <summary>
+        /// chain on one of member happends data change
+        /// </summary>
+        /// <param name="pthis"></param>
+        /// <param name="action"></param>
+        /// <param name="others"></param>
+        /// <returns></returns>
+        public static BaseVar ChainOr(BaseVar pthis, Action<ChainActionArgs> action, params BaseVar[] others)
+        {
+            EventHandler handler = new EventHandler((s, e) =>
+            {
+                if (action != null)
+                {
+                    ChainActionArgs args = new ChainActionArgs();
+                    args.pthis = pthis;
+                    args.others = others;
+                    action(args);
+                }
+            });
+            foreach (BaseVar other in others)
+            {
+                other.BaseValueChanged += handler;
+            }
+            return pthis;
+        }
+        /// <summary>
+        /// chain on one of member happends data change ,and all data are available
+        /// </summary>
+        /// <param name="pthis"></param>
+        /// <param name="action"></param>
+        /// <param name="others"></param>
+        /// <returns></returns>
+        public static BaseVar Chain(BaseVar pthis, Action<ChainActionArgs> action, params BaseVar[] others)
         {
             EventHandler handler = new EventHandler((s, e) =>
             {
