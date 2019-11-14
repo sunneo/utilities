@@ -191,6 +191,14 @@ namespace Utilities
             this.Target = target;
         }
         /// <summary>
+        /// sync this string value to target
+        /// </summary>
+        /// <param name="target"></param>
+        public VarStringPipe()
+        {
+            this.Target = new Var<T>();
+        }
+        /// <summary>
         /// sync a string to this and transform to target
         /// </summary>
         /// <param name="source">string source</param>
@@ -208,6 +216,36 @@ namespace Utilities
         void Source_ValueChanged(object sender, string e)
         {
             this.Value = e;
+        }
+    }
+
+    public class NamedVarFactory
+    {
+        public List<BaseVar> Vars = new List<BaseVar>();
+        public NamedVar<T> NewInstance<T>(String name)
+        {
+            NamedVar<T> ret = new NamedVar<T>(name);
+            Vars.Add(ret);
+            return ret;
+        }
+        public NamedVar<T> NewInstance<T>(String name, T val)
+        {
+            NamedVar<T> ret = new NamedVar<T>(name,val);
+            Vars.Add(ret);
+            return ret;
+        }
+    }
+    public class NamedVar<T> : Var<T>
+    {
+        public String Name;
+        public NamedVar(String name, T val)
+            :base(val)
+        {
+            this.Name = name;
+        }
+        public NamedVar(String name)
+            :base()
+        {
         }
     }
 }
