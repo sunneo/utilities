@@ -104,6 +104,18 @@ namespace Utilities
             });
 
         }
+        public double GetAttributeDouble(String key, double defaultVal = 0.0)
+        {
+            return mLocker.Synchronized(() =>
+            {
+                if (!Attributes.ContainsKey(key))
+                {
+                    return defaultVal;
+                }
+                return (double)Attributes[key];
+            });
+
+        }
         public bool GetAttributeStringToBool(String key, String defaultVal = "")
         {
             return mLocker.Synchronized(() =>
