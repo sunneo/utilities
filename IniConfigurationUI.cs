@@ -254,8 +254,9 @@ namespace Utilities
                                 var enumNames = fieldType.GetEnumNames();
                                 cbox.Items.AddRange(enumNames);
                                 cbox.Dock = DockStyle.Fill;
-
-                                cbox.Text = (String)arg.FieldValue.ToString();
+                                String val = "";
+                                if(arg.FieldValue != null) val = arg.FieldValue.ToString();
+                                cbox.Text = val;
                                 right.Controls.Add(cbox);
                                 cbox.Tag = arg.FullName;
                                 cbox.GotFocus += focusHandler;
