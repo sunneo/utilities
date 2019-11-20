@@ -13,10 +13,16 @@ namespace Utilities
         String FileName;
         FileSystemWatcher mWatcher = null;
         volatile bool ShouldNotify = true;
-        public void Save()
+        public void Save(bool silent=false)
         {
             try
             {
+                if (silent)
+                {
+                    mWatcher.Changed -= mFileChangedHandler;
+                    mWatcher.Created -= mFileChangedHandler;
+                    mWatcher.EnableRaisingEvents = false;
+                }
                 ShouldNotify = false;
                 IniWriter writer = new IniWriter();
                 writer.FileName = FileName;
@@ -31,6 +37,12 @@ namespace Utilities
             finally
             {
                 ShouldNotify = true;
+                if (silent)
+                {
+                    mWatcher.Changed += mFileChangedHandler;
+                    mWatcher.Created += mFileChangedHandler;
+                    mWatcher.EnableRaisingEvents = false;
+                }
             }
         }
         private IniConfiguration(String filename, bool alwaysUpdate)

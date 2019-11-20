@@ -16,8 +16,19 @@ namespace Utilities.UI
         volatile bool Focused = false;
         UndoRedoStack<KeyValuePair<int, string>> TextBoxUndoRedoTracker = new UndoRedoStack<KeyValuePair<int, string>>();
 
-     
-        
+        public event EventHandler UserConfirmInput;
+        public volatile bool ValueConfirmed = false;
+        public String ConfirmedValue = "";
+
+        public void ConfirmInput()
+        {
+            ValueConfirmed = true;
+            ConfirmedValue = this.Text;
+            if (UserConfirmInput != null)
+            {
+                UserConfirmInput(this, EventArgs.Empty);
+            }
+        }
         
         protected override void OnTextChanged(EventArgs e)
         {
@@ -28,6 +39,7 @@ namespace Utilities.UI
                     RedoStack.PushChange(new KeyValuePair<int, String>(this.SelectionStart, this.Text));
                 }
             }
+            ValueConfirmed = false;
             base.OnTextChanged(e);
         }
         
@@ -137,6 +149,10 @@ namespace Utilities.UI
                         return true;
                     }
                 }
+            }
+            if (keyData.HasFlag(Keys.Enter) || keyData.HasFlag(Keys.Return))
+            {
+                ConfirmInput();
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }
