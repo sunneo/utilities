@@ -105,7 +105,7 @@ namespace Utilities
         T m_Value = default(T);
         public event EventHandler<T> ValueChanged;
         public bool ValueChangeTriggerOnlyOnChange = false;
-
+        public Func<T> Getter;
         protected virtual void NotifyValueChanged()
         {
             if (ValueChanged != null)
@@ -119,6 +119,10 @@ namespace Utilities
         {
             get
             {
+                if (Getter != null)
+                {
+                    return Getter();
+                }
                 Changed = false;
                 return m_Value;
             }
