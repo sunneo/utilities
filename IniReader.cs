@@ -34,6 +34,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Utilities.OptionParser.Attributes;
 
 namespace Utilities
 {
@@ -260,6 +261,11 @@ namespace Utilities
                 {
                     var fieldType = field.FieldType;
                     String name = prefix + field.Name;
+                    IniFieldNameAttribute iniFieldName = (IniFieldNameAttribute)field.GetCustomAttribute(typeof(IniFieldNameAttribute), true);
+                    if (iniFieldName != null && !String.IsNullOrEmpty(iniFieldName.Name))
+                    {
+                        name = iniFieldName.Name;
+                    }
                     OnSerializeArgs.FullName = name;
                     
                     if (fieldType.IsPrimitive)
@@ -358,6 +364,37 @@ namespace Utilities
                             field.SetValue(ret, new Size(w, h));
                         }
                         FieldValue = val;
+                    }
+                    else if (fieldType.IsArray && fieldType.GetElementType().IsClass)
+                    {
+                        // for case of 
+                        // SomeThing.Count=2
+                        // SomeThing
+                        FlattenArrayLengthName arrayLengthName = (FlattenArrayLengthName)field.GetCustomAttribute(typeof(FlattenArrayLengthName), true);
+                        if (arrayLengthName != null && !String.IsNullOrEmpty(arrayLengthName.Name))
+                        {
+                            Type elementType = fieldType.GetElementType();
+                            Array arrayInstance = Array.CreateInstance(elementType, reader.GetInt(arrayLengthName.Name));
+                            FlattenArrayName arrayName = (FlattenArrayName)field.GetCustomAttribute(typeof(FlattenArrayName), true);
+                            for (int i = 0; i < arrayInstance.Length; ++i)
+                            {
+                                String flattenArrayName = name + "[" + i.ToString() + "].";
+                                if (arrayName != null && !String.IsNullOrEmpty(arrayName.Name) && !String.IsNullOrEmpty(arrayName.Replacement))
+                                {
+                                    flattenArrayName = arrayName.Name.Replace(arrayName.Replacement, i.ToString())+".";
+                                }
+                                var constructor = elementType.GetConstructor(new Type[] { });
+                                object fieldContent = null;
+                                fieldContent = field.GetValue(ret);
+                                if (constructor != null)
+                                {
+                                    fieldContent = constructor.Invoke(new Object[] { });
+                                    arrayInstance.SetValue(fieldContent, i);
+                                }
+                                DeserializeFields(reader, arrayInstance.GetValue(i), flattenArrayName, OnSerializingMember);
+                            }
+                            field.SetValue(ret, arrayInstance);
+                        }
                     }
                     else if (fieldType == typeof(Rectangle))
                     {

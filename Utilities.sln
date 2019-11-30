@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2013 for Windows Desktop
-VisualStudioVersion = 12.0.40629.0
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "Utilities.csproj", "{5B5C354F-C9AC-4D28-8A64-61666DDF1365}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestUtility", "TestUtility\TestUtility.csproj", "{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,12 @@ Global
 		{5B5C354F-C9AC-4D28-8A64-61666DDF1365}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5B5C354F-C9AC-4D28-8A64-61666DDF1365}.Release|x64.ActiveCfg = Release|x64
 		{5B5C354F-C9AC-4D28-8A64-61666DDF1365}.Release|x64.Build.0 = Release|x64
+		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|x64.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

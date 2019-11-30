@@ -127,6 +127,9 @@
     <Compile Include="OptionParser\Attributes\ArgumentDescAttribute.cs" />
     <Compile Include="OptionParser\Attributes\AttributeConfigureUIVisible.cs" />
     <Compile Include="OptionParser\Attributes\FieldDisplayNameAttribute.cs" />
+    <Compile Include="OptionParser\Attributes\FlattenArrayLengthName.cs" />
+    <Compile Include="OptionParser\Attributes\FlattenArrayName.cs" />
+    <Compile Include="OptionParser\Attributes\IniFieldNameAttribute.cs" />
     <Compile Include="OptionParser\OptionParse\DynamicTryParse.cs" />
     <Compile Include="OptionParser\OptionParse\OptionParser.cs" />
     <Compile Include="OptionParser\OptionParse\OptionParserUnit.cs" />
