@@ -26,12 +26,14 @@
 */
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.ComponentModel;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Utilities.OptionParser.Attributes;
 
 namespace Utilities
 {
@@ -50,6 +52,12 @@ namespace Utilities
             }
             writer.FileName = file;
             return writer;
+        }
+        public static String SerializeToString(Object o)
+        {
+            IniWriter writer = new IniWriter();
+            writer.Serialize(o);
+            return writer.ToString();
         }
         
         public void WriteCategory(String category)
@@ -219,6 +227,30 @@ namespace Utilities
                         else if (fieldType == typeof(Size))
                         {
                             Write(name, (Size)val);
+                        }
+                        else if (fieldType.IsArray && fieldType.GetElementType().IsClass)
+                        {
+                            // for case of 
+                            // SomeThing.Count=2
+                            // SomeThing
+                            FlattenArrayLengthName arrayLengthName = (FlattenArrayLengthName)field.GetCustomAttribute(typeof(FlattenArrayLengthName), true);
+                            if (arrayLengthName != null && !String.IsNullOrEmpty(arrayLengthName.Name))
+                            {
+                                Type elementType = fieldType.GetElementType();
+                                Array arrayInstance = (Array)val;
+                                Write(arrayLengthName.Name, arrayInstance.Length);
+                               
+                                FlattenArrayName arrayName = (FlattenArrayName)field.GetCustomAttribute(typeof(FlattenArrayName), true);
+                                for (int i = 0; i < arrayInstance.Length; ++i)
+                                {
+                                    String flattenArrayName = name + "[" + i.ToString() + "].";
+                                    if (arrayName != null && !String.IsNullOrEmpty(arrayName.Name) && !String.IsNullOrEmpty(arrayName.Replacement))
+                                    {
+                                        flattenArrayName = arrayName.Name.Replace(arrayName.Replacement, i.ToString()) + ".";
+                                    }
+                                    SerializeObject(arrayInstance.GetValue(i), flattenArrayName);
+                                }
+                            }
                         }
                         else if (fieldType == typeof(Rectangle))
                         {

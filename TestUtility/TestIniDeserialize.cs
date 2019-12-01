@@ -21,7 +21,6 @@ namespace TestUtility
         {
             public int intItem;
             public String stringItem;
-            public int PairCount;
             [FlattenArrayLengthName("PairCount"), FlattenArrayName("pairs$INDEX$","$INDEX$")]
             public PairItem[] pairs;
         }
@@ -39,6 +38,19 @@ namespace TestUtility
                 "pairs2.Key=K3",
                 "pairs2.Value=V3");
             TestClass clz= IniReader.DeserializeString<TestClass>(iniContent);
+        }
+        [TestMethod]
+        public void TestTemplateSerialize()
+        {
+            TestClass clz = new TestClass();
+            clz.intItem = 1;
+            clz.stringItem = "2";
+            clz.pairs = new PairItem[]{
+                new PairItem(){ Key="K1", Value="V1"},
+                new PairItem(){ Key="K2", Value="V2"},
+                new PairItem(){ Key="K3", Value="V3"}
+            };
+            String iniContent = IniWriter.SerializeToString(clz);
         }
     }
 }
