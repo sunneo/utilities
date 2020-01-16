@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Utilities.Interfaces
 {
-    public interface IExcelReader
+    public interface IExcelReader:IDisposable
     {
         bool IsValid { get;  }
         String this[int row, int col] { get; }

@@ -12,6 +12,7 @@ namespace Utilities.Server
 {
     public class ServerHolder:IDisposable
     {
+        public const int CLIENT_SEND_TIMEOUT = 100; 
         public volatile bool AutoClose = true;
         public event EventHandler<OnHandleConnectionEventArgs> OnHandleConnection;
         public event EventHandler<OnHandleConnectionEventArgs> OnServerRemoved;

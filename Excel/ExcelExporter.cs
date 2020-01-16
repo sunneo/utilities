@@ -6,14 +6,15 @@ using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Utilities.Excel
 {
-    public class ExcelExporter : ExcelFile
+    public class ExcelExporter : ExcelFile, IDisposable
     {
         ExcelPackage ep;
-        
+        public volatile bool IsDisposed = false;
         String sheetName;
         ExcelWorksheet workSheet;
         String holdFileName = null;
@@ -30,7 +31,19 @@ namespace Utilities.Excel
                 ep = new ExcelPackage();
                 if (File.Exists(filename))
                 {
-                    FileStream fs = new FileStream(filename, FileMode.Open, FileAccess.Read);
+                    FileStream fs = null;
+                    for (int i = 0; i < 10; ++i)
+                    {
+                        try
+                        {
+                            fs = new FileStream(filename, FileMode.Open, FileAccess.Read, FileShare.Read);
+                            break;
+                        }
+                        catch (Exception ee)
+                        {
+                            Thread.Sleep(1000);
+                        }
+                    }
                     ep.Load(fs);
                     fs.Close();
                 }
@@ -54,7 +67,7 @@ namespace Utilities.Excel
             }
             else
             {
-                FileStream fs = new FileStream(filename, FileMode.Create, FileAccess.Write);
+                FileStream fs = new FileStream(filename, FileMode.Create, FileAccess.Write,FileShare.Read);
                 ep = new ExcelPackage(fs);
                 if (this.workSheet == null)
                     this.workSheet = CreateSheet(ep, sheetName);
@@ -219,18 +232,13 @@ namespace Utilities.Excel
             }
             return endRow;
         }
-        public int AddRow(params String[] strings)
+        public void SetRowText(int row, params String[] strings)
         {
-            int endRow = 1;
             try
             {
-                if (workSheet.Dimension != null)
-                {
-                    endRow = workSheet.Dimension.Rows + 1;
-                }
                 for (int i = 0; i < strings.Length; ++i)
                 {
-                    workSheet.Cells[endRow, i + 1].Value = strings[i];
+                    workSheet.Cells[row, i + 1].Value = strings[i];
 
                 }
             }
@@ -238,6 +246,15 @@ namespace Utilities.Excel
             {
                 Console.WriteLine(ee.ToString());
             }
+        }
+        public int AddRow(params String[] strings)
+        {
+            int endRow = 1;
+            if (workSheet.Dimension != null)
+            {
+                endRow = workSheet.Dimension.Rows + 1;
+            }
+            SetRowText(endRow, strings);
             return endRow;
         }
         public void SetCellDimension(int row,int col,int width,int height)
@@ -276,6 +293,16 @@ namespace Utilities.Excel
             {
                 
             }
+        }
+
+        public void Dispose()
+        {
+            if (IsDisposed) return;
+            Close();
+            ep = null;
+            workSheet = null;
+            holdFileName = "";
+            IsDisposed = true;
         }
     }
 }

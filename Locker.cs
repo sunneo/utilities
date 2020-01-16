@@ -101,6 +101,64 @@ namespace Utilities
 
             }
         }
+        public void SynchronizedWithEvent(Action action, Action beforeEnter, Action enter, Action leave)
+        {
+            try
+            {
+                if (beforeEnter != null)
+                {
+                    beforeEnter();
+                }
+                PerformLock();
+                if (enter != null)
+                {
+                    enter();
+                }
+                if (action != null)
+                {
+                    action();
+                }
+            }
+            finally
+            {
+                PerformUnlock();
+                if (leave != null)
+                {
+                    leave();
+                }
+            }
+        }
+
+        public T SynchronizedWithEvent<T>(Func<T> action, Action beforeEnter, Action enter, Action leave)
+        {
+            T ret = default(T);
+            bool locked = false;
+            try
+            {
+                if (beforeEnter != null)
+                {
+                    beforeEnter();
+                }
+                PerformLock();
+                if (enter != null)
+                {
+                    enter();
+                }
+                locked = true;
+                ret = action();
+                PerformUnlock();
+                if (leave != null)
+                {
+                    leave();
+                }
+                locked = false;
+                return ret;
+            }
+            finally
+            {
+                PerformUnlock();
+            }
+        }
 
         public void Synchronized(Action action)
         {
