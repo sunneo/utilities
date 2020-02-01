@@ -17,7 +17,7 @@ namespace Utilities
         {
             try
             {
-                if (silent)
+                if (silent && mWatcher != null)
                 {
                     mWatcher.Changed -= mFileChangedHandler;
                     mWatcher.Created -= mFileChangedHandler;
@@ -37,7 +37,7 @@ namespace Utilities
             finally
             {
                 ShouldNotify = true;
-                if (silent)
+                if (silent && mWatcher != null)
                 {
                     mWatcher.Changed += mFileChangedHandler;
                     mWatcher.Created += mFileChangedHandler;
