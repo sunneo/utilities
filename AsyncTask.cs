@@ -530,7 +530,6 @@ namespace Utilities
         public class TaskContinuable
         {
             internal AsyncTask CurrentTask;
-
             private static void ControlInvoke(Control ctrl, Action<AsyncTask> callback, AsyncTask task)
             {
                 if (ctrl != null)

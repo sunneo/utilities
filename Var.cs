@@ -106,6 +106,7 @@ namespace Utilities
         public event EventHandler<T> ValueChanged;
         public bool ValueChangeTriggerOnlyOnChange = false;
         public Func<T> Getter;
+        public Action<T> Setter;
         protected virtual void NotifyValueChanged()
         {
             if (ValueChanged != null)
@@ -132,6 +133,17 @@ namespace Utilities
                 m_Value = value;
                 Changed = true;
                 HasValue = true;
+                if (Setter != null)
+                {
+                    try
+                    {
+                        Setter(value);
+                    }
+                    catch (Exception ee)
+                    {
+
+                    }
+                }
                 if (ValueChangeTriggerOnlyOnChange)
                 {
                     if (!m_Value.Equals(origVal))
