@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -9,7 +10,8 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
-
+using System.Web;
+using System.Collections.Specialized;
 namespace Utilities
 {
     public class Network
@@ -42,13 +44,76 @@ namespace Utilities
             strResponse = "";
             return false;
         }
-        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding=null, CookieContainer cookie=null)
+        public static Bitmap GetImageStream(String url)
         {
-            strResponse = string.Empty;
+            Bitmap bmp = null;
+            HttpWebRequest wreq;
+            HttpWebResponse wresp;
+            Stream mystream;
 
+            mystream = null;
+            wresp = null;
             try
             {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(strCmd);
+                for (int i = 0; i < 3; ++i)
+                {
+                    try
+                    {
+                        
+                        wreq = (HttpWebRequest)WebRequest.Create(url);
+                        wreq.AllowWriteStreamBuffering = true;
+
+
+                        wresp = (HttpWebResponse)wreq.GetResponse();
+
+                        if ((mystream = wresp.GetResponseStream()) != null)
+                        {
+                            bmp = (Bitmap)Bitmap.FromStream(mystream);
+                            break;
+                        }
+                    }
+                    catch (Exception ee)
+                    {
+                        if (mystream != null)
+                            mystream.Close();
+
+                        if (wresp != null)
+                            wresp.Close();
+                    }
+                }
+                return bmp;
+            }
+            finally
+            {
+
+            }
+        }
+
+        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding=null, CookieContainer cookie=null,bool post=false)
+        {
+            strResponse = string.Empty;
+            
+            try
+            {
+
+                HttpWebRequest request = null;
+                String url = strCmd;
+                String query = "";
+                if (post)
+                {
+                    int idxOfQuery=url.IndexOf('?');
+                    if (idxOfQuery > -1)
+                    {
+                        url = url.Substring(0, idxOfQuery);
+                        query =strCmd.Substring(idxOfQuery + 1);
+                    }
+                    request = (HttpWebRequest)WebRequest.Create(url);
+                    request.Method = "POST";
+                }
+                else
+                {
+                     request = (HttpWebRequest)WebRequest.Create(strCmd);
+                }
                 request.Timeout = timeout;
                 if (cookie != null)
                 {
@@ -56,6 +121,18 @@ namespace Utilities
                 }
                 ServicePointManager.ServerCertificateValidationCallback =
                     delegate { return true; };
+                if(post)
+                {
+                    request.ContentType = "application/x-www-form-urlencoded";
+                    request.Timeout = timeout;
+                    NameValueCollection postParams = System.Web.HttpUtility.ParseQueryString(query);
+                    byte[] byteArray = Encoding.UTF8.GetBytes(postParams.ToString());
+                    using (Stream reqStream = request.GetRequestStream())
+                    {
+                        reqStream.Write(byteArray, 0, byteArray.Length);
+                    }//end using
+                }
+               
                 HttpWebResponse response = (HttpWebResponse)request.GetResponse();
                 if (response.StatusCode == HttpStatusCode.OK)
                 {
