@@ -316,12 +316,32 @@ namespace Utilities
                 {
                     bgthread.Name = "AsyncThread";
                 }
-                bgthread.IsBackground = true;
+                bgthread.IsBackground = IsBackground;
+                if (InternalDelegate != null)
+                {
+                    try
+                    {
+                        InternalDelegate(bgthread);
+                    }
+                    catch (Exception ee)
+                    {
+
+                    }
+                }
                 bgthread.Start();
                 return true;
             }
         }
-
+        volatile bool IsBackground = true;
+        Action<Thread> InternalDelegate;
+        public void setBackground(bool bg)
+        {
+            IsBackground = bg;
+        }
+        public void SetInternalDelegate(Action<Thread>  act)
+        {
+            InternalDelegate = act;
+        }
         #region Main Job to Override
         //=============================================================
         protected virtual void Run()
@@ -389,6 +409,7 @@ namespace Utilities
                 StartAsync();
             }
         }
+        
         /// <summary>
         /// wait until job and its additional job finish
         /// </summary>
