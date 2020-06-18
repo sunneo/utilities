@@ -53,6 +53,23 @@ namespace Utilities.Excel
         {
             get { return GetCellText(row, col); }
         }
+        public int RowCount
+        {
+            get
+            {
+                if (currentSheet == null) { return 0; }
+                return currentSheet.Dimension.Rows;
+            }
+        }
+        public int ColumnCount
+        {
+            get
+            {
+                if (currentSheet == null) { return 0; }
+                return currentSheet.Dimension.Columns;
+            }
+        }
+
         public static string GetSheetCellText(ExcelWorksheet sheet, int row, int col)
         {
             try
