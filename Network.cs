@@ -121,6 +121,8 @@ namespace Utilities
                 }
                 ServicePointManager.ServerCertificateValidationCallback =
                     delegate { return true; };
+                if(strCmd.StartsWith("https:"))
+                    ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
                 if(post)
                 {
                     request.ContentType = "application/x-www-form-urlencoded";
