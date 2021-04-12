@@ -19,17 +19,24 @@ namespace Utilities
               [CallerLineNumber] int sourceLineNumber = 0)
         {
             if (!Enabled) return;
-            lock (Locker)
+            try
             {
-                String nowDate = DateTime.Now.ToString("yyyyMMdd_HH")+"0000";
-                String now = DateTime.Now.ToString("HH:mm:ss");
-                String path = TracerPath;
-                if (!Directory.Exists(path))
+                lock (Locker)
                 {
-                    Directory.CreateDirectory(path);
+                    String nowDate = DateTime.Now.ToString("yyyyMMdd_HH") + "0000";
+                    String now = DateTime.Now.ToString("HH:mm:ss");
+                    String path = TracerPath;
+                    if (!Directory.Exists(path))
+                    {
+                        Directory.CreateDirectory(path);
+                    }
+                    String file = Path.Combine(path, "Log_" + nowDate + ".txt");
+                    File.AppendAllText(file, String.Format("{0} {1} ... {2} ({3} line {4})", now, message, memberName, sourceFilePath, sourceLineNumber) + Environment.NewLine);
                 }
-                String file = Path.Combine(path, "Log_"+nowDate+".txt");
-                File.AppendAllText(file, String.Format("{0} {1} ... {2} ({3} line {4})",now,message,memberName,sourceFilePath,sourceLineNumber)+Environment.NewLine);
+            }
+            catch(Exception ee)
+            {
+                Console.Error.WriteLine(ee.ToString());
             }
         }
     }

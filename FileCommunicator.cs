@@ -221,15 +221,23 @@ namespace Utilities
                 {
                     if (File.Exists(e.FullPath) && File.GetAttributes(e.FullPath) != FileAttributes.Directory)
                     {
-                        if (mTextMode)
+                        bool doIt = true;
+                        if(!String.IsNullOrEmpty(inputFileName) && !e.FullPath.Equals(inputFileName))
                         {
-                            OnText(e.FullPath);
+                            doIt = false;
                         }
-                        else
+                        if (doIt)
                         {
-                            OnBinary(e.FullPath);
+                            if (mTextMode)
+                            {
+                                OnText(e.FullPath);
+                            }
+                            else
+                            {
+                                OnBinary(e.FullPath);
+                            }
+                            File.Delete(e.FullPath);
                         }
-                        File.Delete(e.FullPath);
                     }
                 }
                 catch (Exception ee)
@@ -239,8 +247,16 @@ namespace Utilities
             }
         }
         String mInputFolder;
+        String inputFileName;
         public void SetInputFolder(String mFolder)
         {
+           
+            inputFileName = "";
+            if(File.Exists(mFolder) && !File.GetAttributes(mFolder).HasFlag(FileAttributes.Directory))
+            {
+                inputFileName = mFolder;
+                mFolder = Path.GetDirectoryName(mFolder);
+            }
             mInputFolder = mFolder;
             if (!Directory.Exists(mInputFolder))
             {
