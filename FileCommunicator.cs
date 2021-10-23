@@ -248,11 +248,11 @@ namespace Utilities
         }
         String mInputFolder;
         String inputFileName;
-        public void SetInputFolder(String mFolder)
+        public void SetInputFolder(String mFolder, bool isFile=false)
         {
            
             inputFileName = "";
-            if(File.Exists(mFolder) && !File.GetAttributes(mFolder).HasFlag(FileAttributes.Directory))
+            if(isFile || File.Exists(mFolder) && !File.GetAttributes(mFolder).HasFlag(FileAttributes.Directory))
             {
                 inputFileName = mFolder;
                 mFolder = Path.GetDirectoryName(mFolder);
