@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2013 for Windows Desktop
-VisualStudioVersion = 12.0.31101.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31005.135
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "Utilities.csproj", "{5B5C354F-C9AC-4D28-8A64-61666DDF1365}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestUtility", "TestUtility\TestUtility.csproj", "{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IniBasedUI", "..\IniBasedUI\IniBasedUI.csproj", "{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,8 +31,19 @@ Global
 		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|x64.ActiveCfg = Release|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|x64.Build.0 = Debug|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|Any CPU.Build.0 = Release|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|x64.ActiveCfg = Release|Any CPU
+		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {61431372-4B72-44BB-A382-EF61266FEAF0}
 	EndGlobalSection
 EndGlobal
