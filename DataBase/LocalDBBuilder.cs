@@ -15,9 +15,9 @@ namespace Utilities.Database
 {
     public class LocalDBBuilder : AbstractDBBuilder
     {
+        bool UseSqliteFirst = true;
         internal IDbBuilder oleDB;
         internal IDbBuilder sqlite;
-        public bool UseSqliteFirst = true;
 
         IDbBuilder m_Selection;
         IDbBuilder Selection
@@ -30,6 +30,10 @@ namespace Utilities.Database
                     {
                         m_Selection = sqlite;
                     }
+                    else
+                    {
+                        m_Selection = oleDB;
+                    }
                 }
                 return m_Selection;
             }
@@ -38,11 +42,12 @@ namespace Utilities.Database
                 m_Selection = value;
             }
         }
-        public LocalDBBuilder(DBFactory parent,bool useSqliteFirst=true) : base(parent)
+        public LocalDBBuilder(DBFactory parent,bool UseSqliteFirst=true) : base(parent)
         {
             this.oleDB = parent.OleDbBuilder;
             this.sqlite = parent.SQLiteDbBuilder;
-            this.UseSqliteFirst = useSqliteFirst;
+            this.UseSqliteFirst = UseSqliteFirst;
+
         }
         public override void BulkCopy(string tableName, DataTable dt, string con)
         {
@@ -175,7 +180,7 @@ namespace Utilities.Database
         Dictionary<char, char> specialOp = new Dictionary<char, char>();
         char[] opList = "()[]+-*/&^$#!,'\" \t\n".ToCharArray();
         private List<SQLCommandToken> TokenizeCommand(String cmd)
-        {           
+        {
             List<SQLCommandToken> tokenList = new List<SQLCommandToken>();
             for (int i = 0; i < opList.Length; ++i)
             {
@@ -223,6 +228,10 @@ namespace Utilities.Database
         LRUDictionary<String, String> lru = new LRUDictionary<string, string>(128);
         public override String ConvertCommand(String cmd)
         {
+            if (!UseSqliteFirst)
+            {
+                return cmd;
+            }
             if (lru.ContainsKey(cmd))
             {
                 return lru.Get(cmd);
@@ -251,7 +260,7 @@ namespace Utilities.Database
                 if ("top".Equals(topToken.Value.literal, StringComparison.InvariantCultureIgnoreCase))
                 {
                     int intval = 0;
-                    while(topToken!=null)
+                    while (topToken != null)
                     {
                         topTokens.Add(topToken.Value);
                         String strVal = topToken.Value.literal;
@@ -272,10 +281,10 @@ namespace Utilities.Database
                 topTokens[0].literal = "limit";
                 if (!expr.Children.First.Value.isSubCommand && expr.Children.First.Value.literal.Equals("("))
                 {
-                    expr.Children.AddBefore(expr.Children.Last,new SQLCommandToken() { literal = " " });
+                    expr.Children.AddBefore(expr.Children.Last, new SQLCommandToken() { literal = " " });
                     foreach (SQLCommandToken tok in topTokens)
                     {
-                        expr.Children.AddBefore(expr.Children.Last,tok);
+                        expr.Children.AddBefore(expr.Children.Last, tok);
                     }
                 }
                 else
@@ -330,7 +339,7 @@ namespace Utilities.Database
                             }
                         }
                         strb.Append(token.ToString());
-                       
+
                     }
                     return strb.ToString();
                 }
@@ -380,7 +389,7 @@ namespace Utilities.Database
             }
             return expr;
         }
-        
+
         protected IDbConnection OpenBody(string strCn)
         {
             if (!UseSqliteFirst)
@@ -420,7 +429,7 @@ namespace Utilities.Database
                 }
                 // got data source
                 // if it was mdb
-                String mdbDataSource= dataSource;
+                String mdbDataSource = dataSource;
                 String dbDataSource = dataSource;
                 if (!String.IsNullOrEmpty(mdbDataSource))
                 {
@@ -428,9 +437,9 @@ namespace Utilities.Database
                 }
                 else
                 {
-                   
+
                 }
-                
+
                 if (!String.IsNullOrEmpty(dataSource))
                 {
                     if (dataSource.EndsWith(".mdb"))
@@ -448,7 +457,7 @@ namespace Utilities.Database
             }
             if (!strCn.EndsWith(".db"))
             {
-                
+
             }
 
             ret = sqlite.Open(strCn);
@@ -481,15 +490,15 @@ namespace Utilities.Database
         public override IDbConnection Open(string strCn)
         {
             object oleDbLock = Parent.GetLock(strCn);
-            
+
             lock (oleDbLock)
             {
                 return OpenBody(strCn);
             }
-            
+
 
         }
-        public static Form GetCurrentForm() 
+        public static Form GetCurrentForm()
         {
             Form frm = null;
             if (Application.OpenForms != null && Application.OpenForms.Count > 0)
@@ -505,9 +514,9 @@ namespace Utilities.Database
             // in main thread
             return (frm.InvokeRequired);
         }
-        
-        
-        private void DoConvertProgressive(String origStrCn, String strCn,ProgressDialog reporter)
+
+
+        private void DoConvertProgressive(String origStrCn, String strCn, ProgressDialog reporter)
         {
             IDbConnection oleConnect = oleDB.Open(origStrCn);
             List<String> tableNames = oleDB.GetTableToDatasetConverter().GetTableNames(oleConnect, oleDB);
@@ -548,7 +557,7 @@ namespace Utilities.Database
             {
                 reporter.Done();
             }
-            
+
         }
         Dictionary<String, bool> convertingFlag = new Dictionary<string, bool>();
         /// <summary>
@@ -580,14 +589,14 @@ namespace Utilities.Database
             {
 
             }
-           
-            
 
-            
+
+
+
         }
         public override void SetDataAdapterLoadFillOption(IDbDataAdapter adapter, LoadOption option)
         {
-            Selection.SetDataAdapterLoadFillOption(adapter,option);
+            Selection.SetDataAdapterLoadFillOption(adapter, option);
         }
 
         public override void UpdateDataSet(IDbDataAdapter adapter, DataSet ds, string srcTable)
@@ -605,5 +614,5 @@ namespace Utilities.Database
             Selection.AddParamWithValue(paras, key, value);
         }
     }
-   
+
 }

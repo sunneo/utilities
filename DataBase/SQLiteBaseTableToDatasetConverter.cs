@@ -13,6 +13,10 @@ namespace Utilities.Database
         {
             switch (oColumn.DataType.Name)
             {
+                case "Boolean": return "TEXT";
+                case "Byte[]": return "BLOB";
+                case "Byte": return "INTEGER";
+                case "Decimal": return "INTEGER";
                 case "UInt8": return "INTEGER";
                 case "UInt16": return "INTEGER";
                 case "UInt32": return "INTEGER";
@@ -20,6 +24,7 @@ namespace Utilities.Database
                 case "Int16": return "INTEGER";
                 case "Int32": return "INTEGER";
                 case "String": return "TEXT";
+                case "Single": return "FLOAT";
                 case "Double": return "FLOAT";
                 case "Float": return "REAL";
                 case "DateTime": return "DATETIME";
