@@ -14,9 +14,9 @@ namespace Utilities.Database
     /// <summary>
     /// SQLite implementation
     /// </summary>
-    public class SQLiteDBBuilder: AbstractDBBuilder
+    public class SQLiteDBBuilder : AbstractDBBuilder
     {
-        public SQLiteDBBuilder(DBFactory parent):base(parent)
+        public SQLiteDBBuilder(DBFactory parent) : base(parent)
         {
         }
         SQLiteBaseTableToDatasetConverter tableToDataSetConverter = null;
@@ -60,6 +60,10 @@ namespace Utilities.Database
             }
             return false;
         }
+        public override DataTable GetViews(IDbConnection cn)
+        {
+            return ((SQLiteConnection)cn).GetSchema("Views");
+        }
         public override DataTable GetTables(IDbConnection cn)
         {
             return ((SQLiteConnection)cn).GetSchema("Tables");
@@ -100,7 +104,7 @@ namespace Utilities.Database
             ret.SourceColumn = sourceColumn;
             return ret;
         }
-        
+
         public override void BulkCopy(string tableName, DataTable oTable, IDbConnection cAccess)
         {
             IDbTransaction tr = cAccess.BeginTransaction();
@@ -138,7 +142,7 @@ namespace Utilities.Database
                     if (isString)
                     {
                         String val = row[oColumn].ToString();
-                        if (val.IndexOf('\'')>-1)
+                        if (val.IndexOf('\'') > -1)
                         {
                             val = val.Replace("'", "''");
                         }
@@ -213,10 +217,10 @@ namespace Utilities.Database
         {
             return new SQLiteCommandBuilder((SQLiteDataAdapter)adapter);
         }
-        public override void UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
+        public override int UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
         {
             SQLiteDataAdapter sqlAdater = (SQLiteDataAdapter)adapter;
-            sqlAdater.Update(dt);
+            return sqlAdater.Update(dt);
         }
 
         public override DbParameter CreateParameter(String name, String val)
@@ -253,11 +257,11 @@ namespace Utilities.Database
             }
             return ret;
         }
-        public override void AddParamWithValue(DbParameterCollection paras,String key,String value)
+        public override void AddParamWithValue(DbParameterCollection paras, String key, String value)
         {
             (paras as SQLiteParameterCollection).AddWithValue(key, value);
         }
-        
+
         public override IDbConnection Open(string strCn)
         {
             IDbConnection ret = null;
@@ -273,7 +277,7 @@ namespace Utilities.Database
                     return ret;
                 }
             }
-           
+
             ret = new SQLiteConnection(strCn);
             Parent.SaveConnection(strCn, ret);
             ret.Open();

@@ -11,10 +11,12 @@ namespace Utilities.Database
 {
     public interface IDbBuilder
     {
+        DBFactory Parent { get; }
         BaseTableToDatasetConverter GetTableToDatasetConverter();
 
         IDbConnection Open(String strCn);
         bool IsTable(IDbConnection cn, String tableName);
+        DataTable GetViews(IDbConnection cn);
         DataTable GetTables(IDbConnection cn);
         DataTable GetSchemaTables(IDbConnection cn);
         IDbCommand GetCommand();
@@ -31,12 +33,12 @@ namespace Utilities.Database
 
         void SetDataAdapterLoadFillOption(IDbDataAdapter adapter, LoadOption option);
 
-        void FillDataSet(DataSet ds,String srcTable, string command, IDbConnection connection, Dictionary<String,String> paras);
-        void FillDataSet(IDbDataAdapter adapter,DataSet ds, String srcTable);
+        void FillDataSet(DataSet ds, String srcTable, string command, IDbConnection connection, Dictionary<String, String> paras);
+        void FillDataSet(IDbDataAdapter adapter, DataSet ds, String srcTable);
         void UpdateDataSet(IDbDataAdapter adapter, DataSet ds, String srcTable);
-        void UpdateDataTable(IDbDataAdapter adapter, DataTable dt);
+        int UpdateDataTable(IDbDataAdapter adapter, DataTable dt);
         DbCommandBuilder CreateDbCommandBuilder(IDbDataAdapter adapter);
-        
+
         void FillTable(DataTable table, String command, IDbConnection connection, Dictionary<String, String> paras);
         DbParameter CreateParameter(String name, String val);
         DbParameter CreateStringParameter(String name, int len, String sourceColumn);
@@ -46,7 +48,7 @@ namespace Utilities.Database
         void BulkCopy(string tableName, DataTable dt, string con);
         void BulkCopy(string tableName, DataTable dt, IDbConnection con);
         void DisposeAdapter(IDbDataAdapter da);
-        void Close(IDbConnection cn, bool forceClose=false);
+        void Close(IDbConnection cn, bool forceClose = false);
 
         void AddParamWithValue(DbParameterCollection paras, String key, String value);
 
@@ -58,7 +60,7 @@ namespace Utilities.Database
         bool CheckPrimaryKeyExists(String connectString, string tableName, ref string pkName);
 
 
-        
+
     }
     public static class DataRowExtension
     {
@@ -72,7 +74,7 @@ namespace Utilities.Database
             object obj = row[idx];
             return Convert.ToInt32(obj);
         }
-        public static int GetInt(this DataRow row,int idx)
+        public static int GetInt(this DataRow row, int idx)
         {
             object obj = row[idx];
             return Convert.ToInt32(obj);
@@ -83,5 +85,6 @@ namespace Utilities.Database
             return Convert.ToInt32(obj);
         }
     }
+    
 
 }

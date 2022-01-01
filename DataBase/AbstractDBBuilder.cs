@@ -10,14 +10,25 @@ namespace Utilities.Database
 {
     public abstract class AbstractDBBuilder : IDbBuilder
     {
-        internal DBFactory Parent;
+        internal DBFactory m_Parent;
+        public DBFactory Parent
+        {
+            get
+            {
+                return m_Parent;
+            }
+            private set
+            {
+                m_Parent = value;
+            }
+        }
 
         BaseTableToDatasetConverter tableToDataSetConverter = null;
         public virtual BaseTableToDatasetConverter GetTableToDatasetConverter()
         {
             if (tableToDataSetConverter == null)
             {
-                tableToDataSetConverter = new SQLiteBaseTableToDatasetConverter();
+                tableToDataSetConverter = new BaseTableToDatasetConverter();
             }
             return tableToDataSetConverter;
         }
@@ -27,7 +38,7 @@ namespace Utilities.Database
         }
         public virtual void AddParamWithValue(DbParameterCollection paras, string key, string value)
         {
-            
+
         }
 
         public virtual void BulkCopy(string tableName, DataTable dt, string con)
@@ -37,8 +48,8 @@ namespace Utilities.Database
         }
         public virtual void BulkCopy(string tableName, DataTable dt, IDbConnection cn)
         {
-         
-            
+
+
         }
 
         public virtual bool CheckFieldExists(string connectString, string tableName, string fieldName)
@@ -63,9 +74,9 @@ namespace Utilities.Database
 
         public virtual void Close(IDbConnection cn, bool forceClose = false)
         {
-            
+
         }
-        
+
         public virtual string ConvertCommand(string cmd)
         {
             return cmd;
@@ -98,22 +109,22 @@ namespace Utilities.Database
 
         public virtual void DisposeAdapter(IDbDataAdapter da)
         {
-            
+
         }
 
         public virtual void FillDataSet(DataSet ds, string srcTable, string command, IDbConnection connection, Dictionary<string, string> paras)
         {
-            
+
         }
 
         public virtual void FillDataSet(IDbDataAdapter adapter, DataSet ds, string srcTable)
         {
-            
+
         }
 
         public virtual void FillTable(DataTable table, string command, IDbConnection connection, Dictionary<string, string> paras)
         {
-            
+
         }
 
         public virtual IDbCommand GetCommand()
@@ -155,7 +166,10 @@ namespace Utilities.Database
         {
             return null;
         }
-
+        public virtual DataTable GetViews(IDbConnection cn)
+        {
+            return null;
+        }
         public virtual DataTable GetTables(IDbConnection cn)
         {
             return null;
@@ -173,17 +187,17 @@ namespace Utilities.Database
 
         public virtual void SetDataAdapterLoadFillOption(IDbDataAdapter adapter, LoadOption option)
         {
-            
+
         }
 
         public virtual void UpdateDataSet(IDbDataAdapter adapter, DataSet ds, string srcTable)
         {
-            
+
         }
 
-        public virtual void UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
+        public virtual int UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
         {
-            
+            return 0;
         }
     }
 }

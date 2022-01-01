@@ -71,7 +71,16 @@ namespace Utilities.Database
                         string strQuestionList = "";
                         foreach (DataColumn oColumn in oTable.Columns)
                         {
-                            strCreateColumns += "[" + oColumn.ColumnName + "] " + GetColumnTypeString(oColumn)+ (oColumn.AllowDBNull?" NULL":"") + ", ";
+                            String ignoreCaseType = " ";
+                            if (oColumn.ColumnName.Equals("TableName", StringComparison.InvariantCultureIgnoreCase))
+                            {
+                                ignoreCaseType = " COLLATE NOCASE ";
+                            }
+                            else if (GetColumnTypeString(oColumn).Equals("TEXT"))
+                            {
+                                ignoreCaseType = " COLLATE NOCASE ";
+                            }
+                            strCreateColumns += "[" + oColumn.ColumnName + "] " + GetColumnTypeString(oColumn) + (oColumn.AllowDBNull ? " NULL" : "") + ignoreCaseType + ", ";
                             strColumnList += "[" + oColumn.ColumnName + "],";
                             strQuestionList += "?,";
                         }
@@ -81,8 +90,11 @@ namespace Utilities.Database
                         oCommand.Dispose();
                         oCommand = localBuilder.GetCommand("CREATE TABLE [" + oTable.TableName
                             + "] (" + strCreateColumns + ")", cAccess);
+                        Console.WriteLine(oCommand.CommandText);
+                        Console.WriteLine();
                         oCommand.ExecuteNonQuery();
                         oCommand.Dispose();
+
                         localBuilder.BulkCopy(oTable.TableName, oTable, cAccess);
                     }
                 }
@@ -121,7 +133,7 @@ namespace Utilities.Database
                     tables[tbl] = tbl;
                 }
             }
-            
+
             try
             {
                 // Retrieve the schema
@@ -169,7 +181,7 @@ namespace Utilities.Database
         }
         public override List<String> GetTableNames(IDbConnection cn, IDbBuilder localBuilder)
         {
-            
+
             List<String> ret = new List<string>();
             DataTable _dt = new DataTable();
             try
@@ -204,5 +216,4 @@ namespace Utilities.Database
             localBuilder.FillTable(dataTable, "SELECT * from " + tableName, conn, null);
         }
     }
-
 }

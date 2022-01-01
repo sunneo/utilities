@@ -9,9 +9,13 @@ using System.Xml.Serialization;
 
 namespace Utilities.Database
 {
-    public class BaseTableToDatasetConverter
+   public class BaseTableToDatasetConverter
     {
         public virtual String GetColumnTypeString(DataColumn oColumn)
+        {
+            return GetColumnTypeString(oColumn, -1);
+        }
+        public String GetColumnTypeString(DataColumn oColumn,int givenMax=-1)
         {
             switch (oColumn.DataType.Name)
             {
@@ -21,7 +25,33 @@ namespace Utilities.Database
                 case "Int8": return "INTEGER";
                 case "Int16": return "INTEGER";
                 case "Int32": return "INTEGER";
-                case "String": return "VarChar(255)";
+                case "Int64": return "INTEGER";
+                case "String":
+                    {
+                        if (givenMax > 0)
+                        {
+                            if (givenMax > 255)
+                            {
+                                return "Memo";
+                            }
+                            else
+                            {
+                                return "VarChar(255)";
+                            }
+                        }
+                        else
+                        {
+                            if (oColumn.MaxLength > 255 || oColumn.MaxLength == 0)
+                            {
+                                if(oColumn.MaxLength == int.MaxValue)
+                                {
+                                    return "VarChar(255)";
+                                }
+                                return "Memo";
+                            }
+                        }
+                        return "VarChar(255)";
+                    }
                 case "Double": return "FLOAT";
                 case "Float": return "REAL";
                 case "DateTime": return "DATETIME";
@@ -63,8 +93,24 @@ namespace Utilities.Database
                         string strQuestionList = "";
                         foreach (DataColumn oColumn in oTable.Columns)
                         {
-
-                            strCreateColumns += "[" + oColumn.ColumnName + "] " + GetColumnTypeString(oColumn) + ", ";
+                            int givenMax = -1;
+                            if(oColumn.DataType.Name.Equals("String"))
+                            {
+                                foreach(DataRow row in oTable.Rows)
+                                {
+                                    String val = row[oColumn].ToString();
+                                    int len = val.Length;
+                                    if (len > givenMax)
+                                    {
+                                        givenMax = len;
+                                    }
+                                    if (givenMax > 255)
+                                    {
+                                        break;
+                                    }
+                                }
+                            }
+                            strCreateColumns += "[" + oColumn.ColumnName + "] " + GetColumnTypeString(oColumn,givenMax) + ", ";
                             strColumnList += "[" + oColumn.ColumnName + "],";
                             strQuestionList += "?,";
                         }
@@ -75,27 +121,10 @@ namespace Utilities.Database
                         oCommand = localBuilder.GetCommand("CREATE TABLE [" + oTable.TableName
                             + "] (" + strCreateColumns + ")", cAccess);
                         oCommand.ExecuteNonQuery();
+
                         oCommand.Dispose();
 
-                        IDbDataAdapter da = localBuilder.GetDataAdapter(
-                            "SELECT * FROM [" + oTable.TableName + "]", cAccess);
-                        da.MissingSchemaAction = MissingSchemaAction.Add;
-                        localBuilder.SetDataAdapterLoadFillOption(da, LoadOption.OverwriteChanges);
-
-                        da.InsertCommand = localBuilder.GetCommand(
-                            "INSERT INTO [" + oTable.TableName + "] (" + strColumnList
-                            + ") VALUES (" + strQuestionList + ")", cAccess);
-                        foreach (DataColumn oColumn in oTable.Columns)
-                        {
-                            da.InsertCommand.Parameters.Add(
-                                localBuilder.CreateStringParameter(
-                                oColumn.ColumnName,
-                                255,
-                                oColumn.ColumnName
-                                ));
-                        }
-
-                        localBuilder.UpdateDataTable(da, oTable);
+                        localBuilder.BulkCopy(oTable.TableName, oTable, cAccess);
 
                     }
                 }

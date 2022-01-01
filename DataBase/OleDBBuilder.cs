@@ -12,19 +12,19 @@ namespace Utilities.Database
 {
     public class OleDbBuilder : AbstractDBBuilder
     {
-        public OleDbBuilder(DBFactory parent):base(parent)
+        public OleDbBuilder(DBFactory parent) : base(parent)
         {
         }
 
-        public override  void Close(IDbConnection cn, bool forceClose = false)
+        public override void Close(IDbConnection cn, bool forceClose = false)
         {
-            if(forceClose)
+            if (forceClose)
             {
                 try
                 {
                     ((OleDbConnection)cn).Close();
                 }
-                catch(Exception ee)
+                catch (Exception ee)
                 {
                     Tracer.D(ee.ToString());
                 }
@@ -35,7 +35,26 @@ namespace Utilities.Database
             DataTable schemaTable = ((OleDbConnection)cn).GetOleDbSchemaTable(OleDbSchemaGuid.Tables, new object[] { null, null, null, "TABLE" });
             return schemaTable;
         }
-        public override  bool IsTable(IDbConnection cn, String tableName)
+        public virtual OleDbType GetColumnType(DataColumn oColumn)
+        {
+            switch (oColumn.DataType.Name)
+            {
+                case "UInt8": return OleDbType.Integer;
+                case "UInt16": return OleDbType.Integer;
+                case "UInt32": return OleDbType.Integer;
+                case "Int8": return OleDbType.Integer;
+                case "Int16": return OleDbType.Integer;
+                case "Int32": return OleDbType.Integer;
+                case "Int64": return OleDbType.Integer;
+                case "String": return OleDbType.VarChar;
+                case "Double": return OleDbType.Double;
+                case "Float": return OleDbType.Double;
+                case "DateTime": return OleDbType.Date;
+                case "Byte[]": return OleDbType.Binary;
+            }
+            return OleDbType.VarChar;
+        }
+        public override bool IsTable(IDbConnection cn, String tableName)
         {
             DataTable schemaTable = GetSchemaTables(cn);
 
@@ -48,9 +67,17 @@ namespace Utilities.Database
             }
             return false;
         }
+
+        public override DataTable GetViews(IDbConnection cn)
+        {
+            DataTable ret = ((OleDbConnection)cn).GetSchema("views");
+            return ret;
+        }
+
         public override DataTable GetTables(IDbConnection cn)
         {
-            return ((OleDbConnection)cn).GetSchema("tables");
+            DataTable ret = ((OleDbConnection)cn).GetSchema("tables");
+            return ret;
         }
 
         public override IDbCommand GetCommand()
@@ -93,33 +120,88 @@ namespace Utilities.Database
             IDbConnection cn = this.Open(con);
             BulkCopy(tableName, dt, cn);
         }
-        public override void BulkCopy(string tableName, DataTable dt, IDbConnection cn)
+        public override void BulkCopy(string tableName, DataTable _dt, IDbConnection cn)
         {
-            
+
             try
             {
-                List<string> columnList = new List<string>();
-                foreach (DataColumn one in dt.Columns)
+
+                int _nResult = 0;
+                if (_dt == null) return;
+                string _sCmdText = string.Format("select * from {0} where 1=2", _dt.TableName);
+                OleDbCommand _Command = (OleDbCommand)GetCommand(_sCmdText, cn);
+                OleDbDataAdapter _adapter = new OleDbDataAdapter(_Command);
+                OleDbDataAdapter _adapter1 = new OleDbDataAdapter(_Command);
+                OleDbCommandBuilder _builder = new OleDbCommandBuilder(_adapter1);
+
+                _adapter.InsertCommand = _builder.GetInsertCommand(true);
+                List<DataColumn> dateTimeCols = new List<DataColumn>();
+                foreach (DataColumn _dc in _dt.Columns)
                 {
-                    columnList.Add(one.ColumnName);
-                }
-                IDbDataAdapter adapter = GetDataAdapter("select * from " + tableName, cn);
-                using (DbCommandBuilder builder = CreateDbCommandBuilder(adapter))
-                {
-                    adapter.InsertCommand = builder.GetInsertCommand();
-                    foreach (string one in columnList)
+                    if (GetColumnType(_dc) == OleDbType.Date)
                     {
-                        adapter.InsertCommand.Parameters.Add(this.CreateParameter(one, dt.Columns[one].DataType));
+                        dateTimeCols.Add(_dc);
                     }
-                    UpdateDataTable(adapter,dt);
                 }
+                if (_adapter.InsertCommand.Parameters.Count < _dt.Columns.Count)
+                {
+                    foreach (DataColumn _dc in _dt.Columns)
+                    {
+                        if (!_adapter.InsertCommand.Parameters.Contains(_dc.ColumnName))
+                        {
+                            _adapter.InsertCommand.CommandText =
+                                _adapter.InsertCommand.CommandText.Insert(_adapter.InsertCommand.CommandText.IndexOf(") VALUES"), ',' + _dc.ColumnName);
+
+                            _adapter.InsertCommand.CommandText =
+                                _adapter.InsertCommand.CommandText.Insert(_adapter.InsertCommand.CommandText.Length - 1, ",?");
+
+                            _adapter.InsertCommand.Parameters.Add("@" + _dc.ColumnName, GetColumnType(_dc), _dc.MaxLength, _dc.ColumnName);
+
+                            if (_adapter.InsertCommand.Parameters.Count >= _dt.Columns.Count)
+                                break;
+                        }
+                    }
+                }
+
+
+                IDbTransaction tr = cn.BeginTransaction();
+                try
+                {
+                    _adapter.InsertCommand.Transaction = (OleDbTransaction)tr;
+
+                    for (int i = 0; i < _dt.Rows.Count; ++i)
+                    {
+
+                        DataRow row = _dt.Rows[i];
+                        row.SetAdded();
+
+                        try
+                        {
+                            _nResult = _adapter.Update(_dt);
+                        }
+                        catch (Exception ee)
+                        {
+
+                        }
+                    }
+
+
+                    tr.Commit();
+                }
+                catch (Exception ex)
+                {
+                    tr.Rollback();
+                }
+                tr.Dispose();
             }
             finally
             {
                 Close(cn);
             }
         }
-        public override  void SetDataAdapterLoadFillOption(IDbDataAdapter adapter, LoadOption option)
+
+
+        public override void SetDataAdapterLoadFillOption(IDbDataAdapter adapter, LoadOption option)
         {
             OleDbDataAdapter oleAdapter = (OleDbDataAdapter)adapter;
             oleAdapter.FillLoadOption = option;
@@ -141,12 +223,13 @@ namespace Utilities.Database
         {
             return new OleDbCommandBuilder((OleDbDataAdapter)adapter);
         }
-        public override  void UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
+        public override int UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
         {
             OleDbDataAdapter sqlAdater = (OleDbDataAdapter)adapter;
-            sqlAdater.Update(dt);
+            sqlAdater.ContinueUpdateOnError = true;
+            return sqlAdater.Update(dt);
         }
-        public override DbParameter CreateParameter(String name,String val)
+        public override DbParameter CreateParameter(String name, String val)
         {
             OleDbParameter ret = new OleDbParameter(name, OleDbType.VarChar);
             ret.Value = val;
@@ -158,12 +241,12 @@ namespace Utilities.Database
             ret.Value = val;
             return ret;
         }
-        public override  void FillDataSet(IDbDataAdapter adapter, DataSet ds, String srcTable)
+        public override void FillDataSet(IDbDataAdapter adapter, DataSet ds, String srcTable)
         {
             OleDbDataAdapter dbAdapter = (OleDbDataAdapter)adapter;
             dbAdapter.Fill(ds, srcTable);
         }
-        public override  void UpdateDataSet(IDbDataAdapter adapter, DataSet ds, String srcTable)
+        public override void UpdateDataSet(IDbDataAdapter adapter, DataSet ds, String srcTable)
         {
             OleDbDataAdapter dbAdapter = (OleDbDataAdapter)adapter;
             dbAdapter.Update(ds, srcTable);
@@ -180,7 +263,7 @@ namespace Utilities.Database
             }
             return ret;
         }
-        public override  void AddParamWithValue(DbParameterCollection paras, String key, String value)
+        public override void AddParamWithValue(DbParameterCollection paras, String key, String value)
         {
             (paras as OleDbParameterCollection).AddWithValue(key, value);
         }
@@ -189,7 +272,7 @@ namespace Utilities.Database
         public override IDbConnection Open(string strCn)
         {
             IDbConnection ret = null;
-            
+
             if (Parent.ContainsConnection(strCn))
             {
                 ret = Parent.GetConnection(strCn);
@@ -207,11 +290,11 @@ namespace Utilities.Database
             ret.Open();
             return ret;
         }
-        public override  void FillDataSet(DataSet ds,String srcTable, string command, IDbConnection connection, Dictionary<String, String> paras)
+        public override void FillDataSet(DataSet ds, String srcTable, string command, IDbConnection connection, Dictionary<String, String> paras)
         {
             using (OleDbDataAdapter ret = (OleDbDataAdapter)GetDataAdapter(command, connection, paras))
             {
-                if(String.IsNullOrEmpty(srcTable))
+                if (String.IsNullOrEmpty(srcTable))
                 {
                     ret.Fill(ds);
                 }
@@ -221,7 +304,7 @@ namespace Utilities.Database
                 }
             }
         }
-        public override  void FillTable(DataTable table, String command, IDbConnection connection, Dictionary<String, String> paras)
+        public override void FillTable(DataTable table, String command, IDbConnection connection, Dictionary<String, String> paras)
         {
             using (IDbCommand cmd = GetCommand(command, connection, paras))
             using (IDataReader reader = cmd.ExecuteReader(CommandBehavior.SequentialAccess))
@@ -230,7 +313,7 @@ namespace Utilities.Database
                 table.Load(reader);
             }
         }
-        public override  void DisposeAdapter(IDbDataAdapter da)
+        public override void DisposeAdapter(IDbDataAdapter da)
         {
             if (!(da is OleDbDataAdapter)) return;
             (da as OleDbDataAdapter).Dispose();
@@ -241,7 +324,7 @@ namespace Utilities.Database
         }
 
 
-        public override  bool CheckTableExists(String connectString, string tableName)
+        public override bool CheckTableExists(String connectString, string tableName)
         {
             bool isExist = false;
             try
@@ -271,13 +354,13 @@ namespace Utilities.Database
         }
 
 
-        public override  bool CheckFieldExists(String connectString, string tableName, string fieldName)
+        public override bool CheckFieldExists(String connectString, string tableName, string fieldName)
         {
             bool isExist = true;
             try
             {
                 OleDbConnection con = (OleDbConnection)Open(connectString);
-                
+
                 object[] oa = { null, null, tableName, fieldName };
                 DataTable schemaTable = con.GetOleDbSchemaTable(System.Data.OleDb.OleDbSchemaGuid.Columns, oa);
 
@@ -292,7 +375,7 @@ namespace Utilities.Database
             return isExist;
         }
 
-        public override  bool CheckIndexExists(String connectString, string tableName, string indexName)
+        public override bool CheckIndexExists(String connectString, string tableName, string indexName)
         {
             bool isExist = false;
             OleDbConnection con = null;
@@ -331,7 +414,7 @@ namespace Utilities.Database
             return isExist;
         }
 
-        public override  bool CheckPrimaryKeyExists(String connectString, string tableName, ref string pkName)
+        public override bool CheckPrimaryKeyExists(String connectString, string tableName, ref string pkName)
         {
             bool isExist = true;
             OleDbConnection con = null;

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Data.OleDb;
 using System.Data.SQLite;
 using System.IO;
 using System.Linq;
@@ -15,10 +16,9 @@ namespace Utilities.Database
 {
     public class LocalDBBuilder : AbstractDBBuilder
     {
-        bool UseSqliteFirst = true;
         internal IDbBuilder oleDB;
         internal IDbBuilder sqlite;
-
+        bool UseSqliteFirst = true;
         IDbBuilder m_Selection;
         IDbBuilder Selection
         {
@@ -42,49 +42,88 @@ namespace Utilities.Database
                 m_Selection = value;
             }
         }
-        public LocalDBBuilder(DBFactory parent,bool UseSqliteFirst=true) : base(parent)
+        public LocalDBBuilder(DBFactory parent, bool useSqliteFirst=true) : base(parent)
         {
             this.oleDB = parent.OleDbBuilder;
             this.sqlite = parent.SQLiteDbBuilder;
-            this.UseSqliteFirst = UseSqliteFirst;
 
         }
         public override void BulkCopy(string tableName, DataTable dt, string con)
         {
+            IDbConnection cn = Open(con);
+            if (cn is OleDbConnection)
+            {
+                oleDB.BulkCopy(tableName, dt, con);
+                return;
+            }
             Selection.BulkCopy(tableName, dt, con);
         }
         public override void BulkCopy(string tableName, DataTable dt, IDbConnection con)
         {
+            if (con is OleDbConnection)
+            {
+                oleDB.BulkCopy(tableName, dt, con);
+                return;
+            }
             Selection.BulkCopy(tableName, dt, con);
         }
 
         public override bool CheckFieldExists(string connectString, string tableName, string fieldName)
         {
+            IDbConnection cn = Open(connectString);
+            if (cn is OleDbConnection)
+            {
+                return oleDB.CheckFieldExists(connectString, tableName, fieldName);
+            }
             return Selection.CheckFieldExists(connectString, tableName, fieldName);
         }
 
         public override bool CheckIndexExists(string connectString, string tableName, string indexName)
         {
+            IDbConnection cn = Open(connectString);
+            if (cn is OleDbConnection)
+            {
+                return oleDB.CheckIndexExists(connectString, tableName, indexName);
+            }
             return Selection.CheckIndexExists(connectString, tableName, indexName);
         }
 
         public override bool CheckPrimaryKeyExists(string connectString, string tableName, ref string pkName)
         {
+            IDbConnection cn = Open(connectString);
+            if (cn is OleDbConnection)
+            {
+                return oleDB.CheckPrimaryKeyExists(connectString, tableName, ref pkName);
+            }
             return Selection.CheckPrimaryKeyExists(connectString, tableName, ref pkName);
         }
 
         public override bool CheckTableExists(string connectString, string tableName)
         {
+            IDbConnection cn = Open(connectString);
+            if (cn is OleDbConnection)
+            {
+                return oleDB.CheckTableExists(connectString, tableName);
+            }
             return Selection.CheckTableExists(connectString, tableName);
         }
 
         public override void Close(IDbConnection cn, bool forceClose = false)
         {
+            if (cn is OleDbConnection)
+            {
+                oleDB.Close(cn, true);
+                return;
+            }
             Selection.Close(cn, forceClose);
         }
 
         public override DbCommandBuilder CreateDbCommandBuilder(IDbDataAdapter adapter)
         {
+            if (adapter is OleDbDataAdapter)
+            {
+                return oleDB.CreateDbCommandBuilder(adapter);
+            }
             return Selection.CreateDbCommandBuilder(adapter);
         }
 
@@ -110,21 +149,41 @@ namespace Utilities.Database
 
         public override void DisposeAdapter(IDbDataAdapter da)
         {
+            if (da is OleDbDataAdapter)
+            {
+                oleDB.DisposeAdapter(da);
+                return;
+            }
             Selection.DisposeAdapter(da);
         }
 
         public override void FillDataSet(DataSet ds, string srcTable, string command, IDbConnection connection, Dictionary<string, string> paras)
         {
+            if (connection is OleDbConnection)
+            {
+                oleDB.FillDataSet(ds, srcTable, command, connection, paras);
+                return;
+            }
             Selection.FillDataSet(ds, srcTable, command, connection, paras);
         }
 
         public override void FillDataSet(IDbDataAdapter adapter, DataSet ds, string srcTable)
         {
+            if (adapter is OleDbDataAdapter)
+            {
+                oleDB.FillDataSet(adapter, ds, srcTable);
+                return;
+            }
             Selection.FillDataSet(adapter, ds, srcTable);
         }
 
         public override void FillTable(DataTable table, string command, IDbConnection connection, Dictionary<string, string> paras)
         {
+            if (connection is OleDbConnection)
+            {
+                oleDB.FillTable(table, command, connection, paras);
+                return;
+            }
             Selection.FillTable(table, command, connection, paras);
         }
 
@@ -135,46 +194,83 @@ namespace Utilities.Database
 
         public override IDbCommand GetCommand(string command, IDbConnection cn)
         {
+            if (cn is OleDbConnection)
+            {
+                return oleDB.GetCommand(command, cn);
+            }
             return Selection.GetCommand(ConvertCommand(command), cn);
         }
 
         public override IDbCommand GetCommand(string command, IDbConnection cn, Dictionary<string, string> param)
         {
+            if (cn is OleDbConnection)
+            {
+                return oleDB.GetCommand(command, cn, param);
+            }
             return Selection.GetCommand(ConvertCommand(command), cn, param);
         }
 
         public override IDbDataAdapter GetDataAdapter(string command, string connection)
         {
+            IDbConnection cn = Open(connection);
+            if (cn is OleDbConnection)
+            {
+                return oleDB.GetDataAdapter(ConvertCommand(command), connection);
+            }
             return Selection.GetDataAdapter(ConvertCommand(command), connection);
         }
 
         public override IDbDataAdapter GetDataAdapter(string command, IDbConnection connection)
         {
+            if (connection is OleDbConnection)
+            {
+                return oleDB.GetDataAdapter(command, connection);
+            }
             return Selection.GetDataAdapter(ConvertCommand(command), connection);
         }
 
         public override IDbDataAdapter GetDataAdapter(string command, IDbConnection connection, Dictionary<string, string> param)
         {
+            if (connection is OleDbConnection)
+            {
+                return oleDB.GetDataAdapter(command, connection, param);
+            }
             return Selection.GetDataAdapter(ConvertCommand(command), connection, param);
         }
 
         public override IDbDataAdapter GetDataAdapter(IDbCommand cmd)
         {
+            if (cmd is OleDbCommand)
+            {
+                return oleDB.GetDataAdapter(cmd);
+            }
             return Selection.GetDataAdapter(cmd);
         }
 
         public override DataTable GetSchemaTables(IDbConnection cn)
         {
+            if (cn is OleDbConnection)
+            {
+                return oleDB.GetSchemaTables(cn);
+            }
             return Selection.GetSchemaTables(cn);
         }
 
         public override DataTable GetTables(IDbConnection cn)
         {
+            if (cn is OleDbConnection)
+            {
+                return oleDB.GetTables(cn);
+            }
             return Selection.GetTables(cn);
         }
 
         public override bool IsTable(IDbConnection cn, string tableName)
         {
+            if (cn is OleDbConnection)
+            {
+                return oleDB.IsTable(cn, tableName);
+            }
             return Selection.IsTable(cn, tableName);
         }
         Dictionary<char, char> specialOp = new Dictionary<char, char>();
@@ -389,7 +485,11 @@ namespace Utilities.Database
             }
             return expr;
         }
-
+        /// <summary>
+        /// 因為unitdatabase直接被C++存取
+        /// 這邊讓他沿用oledb
+        /// </summary>
+        bool UnitDatabaseAlwaysUseOleDB = true;
         protected IDbConnection OpenBody(string strCn)
         {
             if (!UseSqliteFirst)
@@ -431,6 +531,10 @@ namespace Utilities.Database
                 // if it was mdb
                 String mdbDataSource = dataSource;
                 String dbDataSource = dataSource;
+                if (mdbDataSource.EndsWith("UnitDatabase.mdb", StringComparison.InvariantCultureIgnoreCase))
+                {
+                    return oleDB.Open(strCn);
+                }
                 if (!String.IsNullOrEmpty(mdbDataSource))
                 {
                     Parent.SaveConvertedString(strCn, "Data Source=" + mdbDataSource);
@@ -450,7 +554,7 @@ namespace Utilities.Database
                     if (!File.Exists(dbDataSource) && File.Exists(dataSource))
                     {
                         //TODO DB convert from MDB
-                        ConvertMDBToSqlite(origStrCn, strCn);
+                        ConvertMDBToSqlite(oleDB, sqlite, origStrCn, strCn);
                         Parent.SaveConvertedString(origStrCn, strCn);
                     }
                 }
@@ -516,74 +620,132 @@ namespace Utilities.Database
         }
 
 
-        private void DoConvertProgressive(String origStrCn, String strCn, ProgressDialog reporter)
+        public static void DoConvertProgressive(IDbBuilder builderFrom, IDbBuilder builderTo, String origStrCn, String strCn, ProgressDialog reporter)
         {
-            IDbConnection oleConnect = oleDB.Open(origStrCn);
-            List<String> tableNames = oleDB.GetTableToDatasetConverter().GetTableNames(oleConnect, oleDB);
-            IDbConnection sqliteConnection = sqlite.Open(strCn);
+            IDbConnection oleConnect = builderFrom.Open(origStrCn);
+            List<String> tableNames = builderFrom.GetTableToDatasetConverter().GetTableNames(oleConnect, builderFrom);
+            DataTable views = builderFrom.GetViews(oleConnect);
+            int viewCount = views.Rows.Count;
+            int tableCount = tableNames.Count;
+            IDbConnection sqliteConnection = builderTo.Open(strCn);
+            int totalProgress = tableCount + viewCount;
             if (reporter != null)
             {
                 reporter.SetAutoClose(false);
-                reporter.BeginTask("轉換資料庫", tableNames.Count);
+                reporter.BeginTask("轉換資料庫", tableNames.Count + viewCount);
             }
-
-            for (int i = 0; i < tableNames.Count; ++i)
+            try
             {
-                String tableName = tableNames[i];
-                if (reporter != null)
+
+                for (int i = 0; i < tableNames.Count; ++i)
                 {
-                    reporter.SubTask(String.Format("[{0}/{1}] 轉換資料表 {2} 從 MDB 到 DB", i + 1, tableNames.Count, tableName));
-                }
-                else
-                {
-                    Console.WriteLine("[{0}/{1}] 轉換資料表 {2} 從 MDB 到 DB", i + 1, tableNames.Count, tableName);
+                    String tableName = tableNames[i];
+                    if (reporter.IsCancelled)
+                    {
+                        break;
+                    }
+                    if (reporter != null)
+                    {
+                        reporter.SubTask(String.Format("[{0}/{1}] 轉換資料表 {2} ", i + 1, totalProgress, tableName));
+                    }
+                    else
+                    {
+                        Console.WriteLine("[{0}/{1}] 轉換資料表 {2} ", i + 1, totalProgress, tableName);
+                    }
+
+                    DataSet ds = builderFrom.GetTableToDatasetConverter().DBToDataSetFromConnectString(oleConnect, builderFrom, tableName);
+                    builderTo.GetTableToDatasetConverter().DataSetToDBFromConnectString(ds, sqliteConnection, builderTo);
+                    if (reporter != null)
+                    {
+                        reporter.Work(1);
+                        reporter.SubTask(String.Format("[{0}/{1}] 轉換資料表 {2} ...OK", i + 1, totalProgress, tableName));
+                    }
                 }
 
-                DataSet ds = oleDB.GetTableToDatasetConverter().DBToDataSetFromConnectString(oleConnect, oleDB, tableName);
-                sqlite.GetTableToDatasetConverter().DataSetToDBFromConnectString(ds, sqliteConnection, sqlite);
-                if (reporter != null)
+                if (!reporter.IsCancelled)
                 {
-                    reporter.Work(1);
-                    reporter.SubTask(String.Format("[{0}/{1}] 轉換資料表 {2} 從 MDB 到 DB...OK", i + 1, tableNames.Count, tableName));
+
+                    for (int i = 0; i < viewCount; ++i)
+                    {
+                        if (reporter.IsCancelled)
+                        {
+                            break;
+                        }
+                        DataRow row = views.Rows[i];
+                        String viewName = row["TABLE_NAME"].ToString();
+                        if (reporter != null)
+                        {
+                            reporter.SubTask(String.Format("[{0}/{1}] 轉換View {2}", tableCount + i + 1, totalProgress, viewName));
+                        }
+                        else
+                        {
+                            Console.WriteLine("[{0}/{1}] 轉換View {2} 從 MDB 到 DB", tableCount + i + 1, totalProgress, viewName);
+                        }
+                        using (IDbCommand cmd = builderTo.GetCommand("DROP VIEW IF EXISTS " + viewName, sqliteConnection))
+                        {
+                            cmd.ExecuteNonQuery();
+                        }
+                        using (IDbCommand cmd = builderTo.GetCommand("CREATE VIEW " + viewName + " AS " + row["VIEW_DEFINITION"] + ";", sqliteConnection))
+                        {
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
                 }
             }
+            catch (ThreadAbortException ex)
+            {
+                Thread.ResetAbort();
+            }
 
-            Parent.RemoveConnection(origStrCn);
-            oleDB.Close(oleConnect, true);
+            builderFrom.Parent.RemoveConnection(origStrCn);
+            builderFrom.Close(oleConnect, true);
 
-            Parent.RemoveConnection(strCn);
-            sqlite.Close(sqliteConnection, true);
+            builderFrom.Parent.RemoveConnection(strCn);
+            builderTo.Close(sqliteConnection, true);
             if (reporter != null)
             {
                 reporter.Done();
             }
 
         }
-        Dictionary<String, bool> convertingFlag = new Dictionary<string, bool>();
+
         /// <summary>
         /// 
         /// </summary>
         /// <param name="origStrCn">connect string to access mdb</param>
         /// <param name="strCn">connect string to sqlite db</param>
-        private void ConvertMDBToSqlite(String origStrCn, String strCn)
+        public static void ConvertMDBToSqlite(IDbBuilder oleDB, IDbBuilder sqlite, String origStrCn, String strCn, bool canCancel = false, Form parentForm = null)
         {
             try
             {
                 //TODO DB convert from MDB
 
-                ProgressDialog progressDialog = new ProgressDialog(false);
+                ProgressDialog progressDialog = new ProgressDialog(canCancel);
                 progressDialog.StartPosition = FormStartPosition.CenterParent;
-
+                Thread th = new Thread(() =>
+                {
+                    DoConvertProgressive(oleDB, sqlite, origStrCn, strCn, progressDialog);
+                });
                 progressDialog.Load += (s, e) =>
                 {
-                    Thread th = new Thread(() =>
-                    {
-                        DoConvertProgressive(origStrCn, strCn, progressDialog);
-                    });
                     th.Start();
                 };
+                progressDialog.OnCancel += (s, e) =>
+                {
+                    try
+                    {
+                        if (th != null && th.IsAlive)
+                        {
+                            th.Abort();
+                        }
+                    }
+                    catch (Exception ee)
+                    {
+
+                    }
+                };
                 progressDialog.Text = "轉換資料庫";
-                progressDialog.ShowDialog();
+                progressDialog.ShowDialog(parentForm);
             }
             catch (Exception ee)
             {
@@ -596,23 +758,43 @@ namespace Utilities.Database
         }
         public override void SetDataAdapterLoadFillOption(IDbDataAdapter adapter, LoadOption option)
         {
+            if (adapter is OleDbDataAdapter)
+            {
+                oleDB.SetDataAdapterLoadFillOption(adapter, option);
+                return;
+            }
             Selection.SetDataAdapterLoadFillOption(adapter, option);
         }
 
         public override void UpdateDataSet(IDbDataAdapter adapter, DataSet ds, string srcTable)
         {
+            if (adapter is OleDbDataAdapter)
+            {
+                oleDB.UpdateDataSet(adapter, ds, srcTable);
+                return;
+            }
             Selection.UpdateDataSet(adapter, ds, srcTable);
         }
 
-        public override void UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
+        public override int UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
         {
-            Selection.UpdateDataTable(adapter, dt);
+            if (adapter is OleDbDataAdapter)
+            {
+                return oleDB.UpdateDataTable(adapter, dt);
+            }
+            return Selection.UpdateDataTable(adapter, dt);
         }
 
         public override void AddParamWithValue(DbParameterCollection paras, string key, string value)
         {
+            if (paras is OleDbParameterCollection)
+            {
+                oleDB.AddParamWithValue(paras, key, value);
+                return;
+            }
             Selection.AddParamWithValue(paras, key, value);
         }
     }
+
 
 }

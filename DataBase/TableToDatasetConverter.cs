@@ -87,22 +87,8 @@ namespace Utilities.Database
             }
 
         }
-        public static void Main(String mdbFile)
-        {
-            if (!mdbFile.EndsWith(".mdb", StringComparison.InvariantCultureIgnoreCase))
-            {
-                Console.WriteLine("Please specify the path to an MDB file.");
-                return;
-            }
-            BaseTableToDatasetConverter datasetConverter = DBFactory.Default.LocalDbBuilder.GetTableToDatasetConverter();
-            DataSet dataSet = datasetConverter.DBToDataSetFromConnectString(@"Provider=Microsoft.JET.OLEDB.4.0;" + @"data source=" + mdbFile);
 
-            string name = mdbFile.ToLowerInvariant();
-            DatasetSerialization serialization = new DatasetSerialization();
-
-            dataSet.WriteXmlSchema(name.Replace(".mdb", ".schema.xml"));
-            dataSet.WriteXml(name.Replace(".mdb", ".xml"));
-        }
 
     }
+   
 }

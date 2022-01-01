@@ -23,7 +23,7 @@ namespace Utilities.Database
             }
         }
         Dictionary<String, IDbConnection> connections = new Dictionary<string, IDbConnection>();
-        
+
         private volatile IDbBuilder m_SqlBuilder;
         private volatile IDbBuilder m_OleDbBuilder;
         private volatile IDbBuilder m_SQLiteDbBuilder;
@@ -32,7 +32,7 @@ namespace Utilities.Database
         {
             get
             {
-                if(m_SqlBuilder == null)
+                if (m_SqlBuilder == null)
                 {
                     m_SqlBuilder = new SQLDBBuilder(this);
                 }
@@ -53,7 +53,7 @@ namespace Utilities.Database
             }
             return strCn;
         }
-        public void SaveConvertedString(String left,String right)
+        public void SaveConvertedString(String left, String right)
         {
             converted[left] = right;
         }
@@ -78,7 +78,7 @@ namespace Utilities.Database
         {
             get
             {
-                if(m_LocalDbBuilder == null)
+                if (m_LocalDbBuilder == null)
                 {
                     m_LocalDbBuilder = new LocalDBBuilder(this);
                 }
@@ -138,5 +138,6 @@ namespace Utilities.Database
             connections[str] = conn;
         }
     }
-    
+
+
 }

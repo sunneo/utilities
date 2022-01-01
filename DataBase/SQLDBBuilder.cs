@@ -12,7 +12,7 @@ namespace Utilities.Database
 {
     public class SQLDBBuilder : AbstractDBBuilder
     {
-        public SQLDBBuilder(DBFactory parent):base(parent)
+        public SQLDBBuilder(DBFactory parent) : base(parent)
         {
         }
 
@@ -48,6 +48,11 @@ namespace Utilities.Database
             }
             return false;
         }
+        public override DataTable GetViews(IDbConnection cn)
+        {
+            return ((SqlConnection)cn).GetSchema("Views");
+        }
+
         public override DataTable GetTables(IDbConnection cn)
         {
             return ((SqlConnection)cn).GetSchema("Tables");
@@ -75,7 +80,7 @@ namespace Utilities.Database
             {
                 foreach (KeyValuePair<string, string> kvp in paras)
                 {
-                    AddParamWithValue(ret.Parameters,kvp.Key, kvp.Value);
+                    AddParamWithValue(ret.Parameters, kvp.Key, kvp.Value);
                 }
             }
             return ret;
@@ -88,7 +93,7 @@ namespace Utilities.Database
         {
             try
             {
-                using (SqlBulkCopy sqlbulkcopy = new SqlBulkCopy((SqlConnection)con, SqlBulkCopyOptions.UseInternalTransaction,null))
+                using (SqlBulkCopy sqlbulkcopy = new SqlBulkCopy((SqlConnection)con, SqlBulkCopyOptions.UseInternalTransaction, null))
                 {
                     try
                     {
@@ -147,10 +152,10 @@ namespace Utilities.Database
         {
             return new SqlDataAdapter((SqlCommand)cmd);
         }
-        public override void UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
+        public override int UpdateDataTable(IDbDataAdapter adapter, DataTable dt)
         {
             SqlDataAdapter sqlAdater = (SqlDataAdapter)adapter;
-            sqlAdater.Update(dt);
+            return sqlAdater.Update(dt);
         }
         public override DbParameter CreateParameter(String name, String val)
         {
@@ -200,7 +205,7 @@ namespace Utilities.Database
         }
         public override void FillDataSet(DataSet ds, String srcTable, string command, IDbConnection connection, Dictionary<String, String> paras)
         {
-            using (SqlDataAdapter ret = (SqlDataAdapter)GetDataAdapter(command,connection, paras))
+            using (SqlDataAdapter ret = (SqlDataAdapter)GetDataAdapter(command, connection, paras))
             {
                 if (String.IsNullOrEmpty(srcTable))
                 {
@@ -215,8 +220,8 @@ namespace Utilities.Database
         }
         public override void FillTable(DataTable table, String command, IDbConnection connection, Dictionary<String, String> paras)
         {
-            using(IDbCommand cmd = GetCommand(command,connection,paras))
-            using(IDataReader reader=cmd.ExecuteReader(CommandBehavior.SequentialAccess))
+            using (IDbCommand cmd = GetCommand(command, connection, paras))
+            using (IDataReader reader = cmd.ExecuteReader(CommandBehavior.SequentialAccess))
             {
                 table.Clear();
                 table.Load(reader);
@@ -231,7 +236,7 @@ namespace Utilities.Database
         {
             return new SqlParameter(name, type);
         }
-        private int Fill_tb(String connectString,string sql, ref DataTable dt)
+        private int Fill_tb(String connectString, string sql, ref DataTable dt)
         {
             int _ret = -1;
             IDbConnection cn = Open(connectString);
@@ -251,7 +256,7 @@ namespace Utilities.Database
             {
                 DataTable dt = new DataTable();
                 string _sql = "select * from sys.objects where object_id = OBJECT_ID(N'" + tableName + "') and type in (N'U')";
-                Fill_tb(connectString,_sql, ref dt);
+                Fill_tb(connectString, _sql, ref dt);
                 if (dt.Rows.Count == 0)
                     isExist = false;
             }
@@ -271,7 +276,7 @@ namespace Utilities.Database
             {
                 DataTable dt = new DataTable();
                 string _sql = "select id from syscolumns where id=object_id('" + tableName + "') and name='" + fieldName + "'";
-                Fill_tb(connectString,_sql, ref dt);
+                Fill_tb(connectString, _sql, ref dt);
                 if (dt.Rows.Count == 0)
                     isExist = false;
             }
@@ -291,7 +296,7 @@ namespace Utilities.Database
             {
                 DataTable dt = new DataTable();
                 string _sql = "select name from sys.indexes where name ='" + indexName + "'";
-                Fill_tb(connectString,_sql, ref dt);
+                Fill_tb(connectString, _sql, ref dt);
                 if (dt.Rows.Count == 0)
                     isExist = false;
             }
@@ -312,7 +317,7 @@ namespace Utilities.Database
             {
                 DataTable dt = new DataTable();
                 string _sql = "select name from sys.indexes where type = 1 and name ='" + pkName + "'";
-                Fill_tb(connectString,_sql, ref dt);
+                Fill_tb(connectString, _sql, ref dt);
                 if (dt.Rows.Count == 0)
                     isExist = false;
             }
