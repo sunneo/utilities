@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utilities", "Utilities.cspr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestUtility", "TestUtility\TestUtility.csproj", "{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IniBasedUI", "..\IniBasedUI\IniBasedUI.csproj", "{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,14 +29,6 @@ Global
 		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3D170101-C926-4C8D-AA4D-B4E8CE84BD78}.Release|x64.ActiveCfg = Release|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Debug|x64.Build.0 = Debug|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|Any CPU.Build.0 = Release|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|x64.ActiveCfg = Release|Any CPU
-		{34BF780C-9DE8-45EC-B59F-C088CCDCBE41}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

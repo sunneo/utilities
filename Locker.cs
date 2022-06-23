@@ -41,6 +41,15 @@ namespace Utilities
         public volatile Thread OwnerThread;
         bool useLock = true;
         volatile bool Entered = false;
+        public DisposableWrapper Lock()
+        {
+            DisposableWrapper ret = new DisposableWrapper(() =>
+            {
+                Monitor.Exit(lockerObj);
+            });
+            Monitor.Enter(lockerObj);
+            return ret;
+        }
         private void PerformLock(int timeout = -1)
         {
             try

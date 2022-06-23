@@ -38,7 +38,7 @@ using Utilities.OptionParser.Attributes;
 
 namespace Utilities
 {
-    public class IniReader:BaseIniReader
+    public class IniReader
     {
         public class ExampleClass
         {
@@ -61,16 +61,16 @@ namespace Utilities
         {
             //可以從字串Deserialize到物件
             ExampleClass example = IniReader.DeserializeString<ExampleClass>(
-                "StringField=Hello World"+Environment.NewLine+
-                "IntField=1234567890"+Environment.NewLine+
-                "DoubleField=3.1415926"+Environment.NewLine+
-                "SizeField=100,100"+Environment.NewLine+
-                "RectangleField=1,2,3,4"+Environment.NewLine+
-                "PointField=5,6"+Environment.NewLine+
-                "InnerClassField.StringField=InnerClass String"+Environment.NewLine+
-                "InnerClassField.IntField=1000"+Environment.NewLine+
-                "InnerClassField.IntField2=2000"+Environment.NewLine+
-                "InnerClassField.DoubleField=3000"+Environment.NewLine
+                "StringField=Hello World" + Environment.NewLine +
+                "IntField=1234567890" + Environment.NewLine +
+                "DoubleField=3.1415926" + Environment.NewLine +
+                "SizeField=100,100" + Environment.NewLine +
+                "RectangleField=1,2,3,4" + Environment.NewLine +
+                "PointField=5,6" + Environment.NewLine +
+                "InnerClassField.StringField=InnerClass String" + Environment.NewLine +
+                "InnerClassField.IntField=1000" + Environment.NewLine +
+                "InnerClassField.IntField2=2000" + Environment.NewLine +
+                "InnerClassField.DoubleField=3000" + Environment.NewLine
                 );
 
         }
@@ -118,7 +118,115 @@ namespace Utilities
         {
             Main2();
         }
-        
+        public Dictionary<String, List<String>> Data = new Dictionary<string, List<String>>();
+
+        public Dictionary<String, String> FieldSectionMapper = new Dictionary<string, string>();
+        public int[] GetIntsFromString(String name)
+        {
+            String s = GetString(name);
+            if (String.IsNullOrEmpty(s))
+            {
+                if (String.IsNullOrEmpty(name))
+                {
+                    return null;
+                }
+                else
+                {
+                    if (name.IndexOf(',') > -1)
+                    {
+                        s = name;
+                    }
+                }
+            }
+            if (s.IndexOf(',') > -1)
+            {
+                String[] splits = s.Split(',');
+                int len = splits.Length;
+                int[] ret = new int[len];
+                for (int i = 0; i < len; ++i)
+                {
+                    int.TryParse(splits[i], out ret[i]);
+                }
+                return ret;
+            }
+            else
+            {
+                int dummy = 0;
+                int.TryParse(s, out dummy);
+                return new int[] { dummy };
+            }
+            return null;
+        }
+        public double GetDouble(String name, double defaultValue = 0)
+        {
+            List<String> list = GetList(name);
+            double ret = defaultValue;
+            if (list.Count > 0)
+            {
+                double.TryParse(list[0], out ret);
+            }
+            return ret;
+        }
+        public int GetInt(String name, int defaultValue = 0)
+        {
+            List<String> list = GetList(name);
+            int ret = defaultValue;
+            if (list.Count > 0)
+            {
+                int.TryParse(list[0], out ret);
+            }
+            return ret;
+        }
+        public List<String> GetList(String s)
+        {
+            List<String> list = new List<string>();
+            if (Data.ContainsKey(s))
+            {
+                list = Data[s];
+            }
+            return list;
+        }
+        public bool GetBoolean(String s, bool defaultValue = false)
+        {
+            String str = GetString(s);
+            if (String.IsNullOrEmpty(str)) return defaultValue;
+            bool ret = defaultValue;
+            if (bool.TryParse(str, out ret))
+            {
+                return ret;
+            }
+            else
+            {
+                return defaultValue;
+            }
+
+        }
+        public String GetString(String s, String defaultValue = "")
+        {
+            List<String> list = GetList(s);
+            String ret = "";
+            if (list.Count > 0)
+            {
+                if (list.Count == 1)
+                {
+                    ret = list[0];
+                }
+                else
+                {
+                    StringBuilder strb = new StringBuilder();
+                    for (int i = 0; i < list.Count; ++i)
+                    {
+                        strb.Append(list[i] + Environment.NewLine);
+                    }
+                    ret = strb.ToString();
+                }
+            }
+            else
+            {
+                return defaultValue;
+            }
+            return ret;
+        }
         private IniReader()
         {
 
@@ -135,7 +243,7 @@ namespace Utilities
         public static void DeserializeFields(IniReader reader, object ret, String prefix = "", EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
         {
             Type t = ret.GetType();
-            
+
             foreach (var field in t.GetFields())
             {
                 Object FieldValue = null;
@@ -159,7 +267,7 @@ namespace Utilities
                         name = iniFieldName.Name;
                     }
                     OnSerializeArgs.FullName = name;
-                    
+
                     if (fieldType.IsPrimitive)
                     {
                         if (fieldType == typeof(int))
@@ -193,7 +301,7 @@ namespace Utilities
 
                             }
                         }
-                        
+
                     }
                     else if (fieldType == typeof(string))
                     {
@@ -229,7 +337,7 @@ namespace Utilities
                             r = intList[1];
                             g = intList[2];
                             b = intList[3];
-                            Color clrVal=Color.FromArgb(a, r, g, b);
+                            Color clrVal = Color.FromArgb(a, r, g, b);
                             field.SetValue(ret, clrVal);
                             FieldValue = clrVal;
                         }
@@ -273,7 +381,7 @@ namespace Utilities
                                 String flattenArrayName = name + "[" + i.ToString() + "].";
                                 if (arrayName != null && !String.IsNullOrEmpty(arrayName.Name) && !String.IsNullOrEmpty(arrayName.Replacement))
                                 {
-                                    flattenArrayName = arrayName.Name.Replace(arrayName.Replacement, i.ToString())+".";
+                                    flattenArrayName = arrayName.Name.Replace(arrayName.Replacement, i.ToString()) + ".";
                                 }
                                 var constructor = elementType.GetConstructor(new Type[] { });
                                 object fieldContent = null;
@@ -334,9 +442,9 @@ namespace Utilities
 
                         }
                     }
-                    else if(fieldType.IsClass)
+                    else if (fieldType.IsClass)
                     {
-                        var constructor=fieldType.GetConstructor(new Type[] { });
+                        var constructor = fieldType.GetConstructor(new Type[] { });
                         object fieldContent = null;
                         fieldContent = field.GetValue(ret);
                         if (fieldContent == null)
@@ -349,7 +457,7 @@ namespace Utilities
                         }
 
                         FieldValue = fieldContent;
-                        if(fieldContent != null)
+                        if (fieldContent != null)
                         {
                             DeserializeFields(reader, fieldContent, field.Name + ".", OnSerializingMember);
                         }
@@ -369,10 +477,10 @@ namespace Utilities
         public static T Deserialize<T>(String filename, EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
         {
             IniReader reader = IniReader.FromFile(filename);
-            Type t = typeof(T) ;
+            Type t = typeof(T);
             var constructor = t.GetConstructor(new Type[] { });
             T ret = (T)constructor.Invoke(new object[] { });
-            DeserializeFields(reader, ret,"",OnSerializingMember);
+            DeserializeFields(reader, ret, "", OnSerializingMember);
             return ret;
         }
         public static T DeserializeString<T>(String stringContent, EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
@@ -436,7 +544,80 @@ namespace Utilities
             }
             return new List<double>();
         }
-       
+        String CurrentCategory = "";
+        private void ParseStream(TextReader fs)
+        {
+            {
+                try
+                {
+                    while (true)
+                    {
+                        string line = fs.ReadLine();
+                        if (line == null) break;
+                        line = line.Trim();
+                        if (!String.IsNullOrEmpty(line))
+                        {
+                            if (line[0] == '#') continue;
+                            if (line[0] == '[')
+                            {
+                                String[] splits = line.Split('[', ']');
+                                if (splits.Length > 1)
+                                {
+                                    String sec = splits[1];
+                                    if (!CurrentCategory.Equals(sec))
+                                    {
+                                        CurrentCategory = sec;
+                                    }
+                                }
+                            }
+                            if (line.IndexOf('=') > -1)
+                            {
+                                int idx = line.IndexOf('=');
+                                String k = line.Substring(0, idx).Trim();
+                                if (idx + 1 < line.Length)
+                                {
+                                    String v = line.Substring(idx + 1).Trim();
+                                    List<String> list = null;
+                                    if (Data.ContainsKey(k))
+                                    {
+                                        list = Data[k];
+                                    }
+                                    else
+                                    {
+                                        list = new List<string>();
+                                        Data[k] = list;
+                                    }
+                                    list.Add(v);
+                                    FieldSectionMapper[k] = CurrentCategory;
+                                }
+                            }
+                        }
+                        if (line == null)
+                        {
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ee)
+                {
+                    Console.WriteLine(ee.ToString());
+                }
+            }
+        }
+        private void ParseFile(String IniFilePath)
+        {
+            using (StreamReader fs = new StreamReader(new BufferedStream(new FileStream(IniFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))))
+            {
+                ParseStream(fs);
+            }
+        }
+        private void ParseString(String stringContent)
+        {
+            using (StringReader fs = new StringReader(stringContent))
+            {
+                ParseStream(fs);
+            }
+        }
         public static IniReader FromString(String stringContent)
         {
             IniReader ret = new IniReader();

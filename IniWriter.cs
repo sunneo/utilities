@@ -37,9 +37,123 @@ using Utilities.OptionParser.Attributes;
 
 namespace Utilities
 {
-    public class IniWriter:BaseIniWriter
+    public class IniWriter : IDisposable
     {
-      
+        volatile bool bIsDisposed = false;
+        List<String> Lines = new List<string>();
+        public String FileName;
+        public Dictionary<String, Object> GivenValue = new Dictionary<string, object>();
+        public static IniWriter Open(String file, bool appendFile = false)
+        {
+            IniWriter writer = new IniWriter();
+            if (File.Exists(file) && appendFile)
+            {
+                writer.Lines.AddRange(File.ReadAllLines(file));
+            }
+            writer.FileName = file;
+            return writer;
+        }
+        public static String SerializeToString(Object o)
+        {
+            IniWriter writer = new IniWriter();
+            writer.Serialize(o);
+            return writer.ToString();
+        }
+
+        public void WriteCategory(String category)
+        {
+            this.Lines.Add("[" + category + "]");
+        }
+        public void WriteComment(String content)
+        {
+            StringReader reader = new StringReader(content);
+            List<String> lines = new List<string>();
+            int maxLength = 0;
+            while (true)
+            {
+                String s = reader.ReadLine();
+                if (s == null)
+                {
+                    break;
+                }
+                maxLength = Math.Max(maxLength, s.Length);
+                lines.Add(s);
+            }
+            if (lines.Count == 1)
+            {
+                Lines.Add("#  " + lines[0]);
+            }
+            else
+            {
+                String separator = "#".PadLeft(maxLength + 3, '#');
+                Lines.Add(separator);
+                foreach (String s in lines)
+                {
+                    Lines.Add("#  " + s);
+                }
+                Lines.Add(separator);
+            }
+        }
+        public void Write(String key, String val)
+        {
+            Lines.Add(key + "=" + val);
+        }
+        public void Write(String key, bool val)
+        {
+            this.Write(key, val.ToString());
+        }
+        public void Write(String key, int val)
+        {
+            this.Write(key, val.ToString());
+        }
+        public void Write(String key, double val)
+        {
+            this.Write(key, val.ToString());
+        }
+        public void Write(String key, int[] val)
+        {
+            StringBuilder strb = new StringBuilder();
+            for (int i = 0; i < val.Length; ++i)
+            {
+                String v = val[i].ToString();
+                strb.Append(v);
+                if (i + 1 < val.Length)
+                {
+                    strb.Append(',');
+                }
+            }
+            this.Write(key, strb.ToString());
+        }
+        public void Write(String key, double[] val)
+        {
+            StringBuilder strb = new StringBuilder();
+            for (int i = 0; i < val.Length; ++i)
+            {
+                String v = val[i].ToString();
+                strb.Append(v);
+                if (i + 1 < val.Length)
+                {
+                    strb.Append(',');
+                }
+            }
+            this.Write(key, strb.ToString());
+        }
+        public void Write(String key, Point val)
+        {
+            this.Write(key, val.ToIntArray());
+        }
+        public void Write(String key, Size val)
+        {
+            this.Write(key, val.ToIntArray());
+        }
+        public void Write(String key, Rectangle val)
+        {
+            this.Write(key, val.ToIntArray());
+        }
+        public void Write(String key, Color val)
+        {
+            this.Write(key, val.ToIntArray());
+        }
         private void SerializeObject(object ret, String prefix)
         {
             Type t = ret.GetType();
@@ -89,7 +203,7 @@ namespace Utilities
                             {
                                 Write(name, (double)val);
                             }
-                            else if(fieldType.IsEnum)
+                            else if (fieldType.IsEnum)
                             {
                                 Write(name, (string)val);
                             }
@@ -125,7 +239,7 @@ namespace Utilities
                                 Type elementType = fieldType.GetElementType();
                                 Array arrayInstance = (Array)val;
                                 Write(arrayLengthName.Name, arrayInstance.Length);
-                               
+
                                 FlattenArrayName arrayName = (FlattenArrayName)field.GetCustomAttribute(typeof(FlattenArrayName), true);
                                 for (int i = 0; i < arrayInstance.Length; ++i)
                                 {
@@ -192,7 +306,40 @@ namespace Utilities
         {
             SerializeObject(o, "");
         }
-       
+        public void Save()
+        {
+            if (String.IsNullOrEmpty(FileName)) return;
+            using (var fs = new FileStream(this.FileName, FileMode.Create, FileAccess.Write, FileShare.Read))
+            using (var wr = new StreamWriter(fs))
+            {
+                foreach (String s in Lines)
+                {
+                    wr.WriteLine(s);
+                }
+            }
+        }
+        public void Close()
+        {
+            Save();
+            Lines.Clear();
+            FileName = "";
+        }
+        public void Dispose()
+        {
+            if (bIsDisposed) return;
+            this.Close();
+            bIsDisposed = true;
+        }
+
+        public override string ToString()
+        {
+            StringBuilder strb = new StringBuilder();
+            foreach (String s in Lines)
+            {
+                strb.AppendLine(s);
+            }
+            return strb.ToString();
+        }
 
         public class ExampleClass
         {
@@ -215,7 +362,7 @@ namespace Utilities
         {
             //可以從物件Serialize到Ini
             ExampleClass example = new ExampleClass();
-            
+
             example.StringField = "Hello World";
             example.IntField = 1234567890;
             example.DoubleField = 3.1415926;
@@ -236,7 +383,7 @@ namespace Utilities
         {
             Test();
         }
-        
+
     }
     public static class Extensions
     {
@@ -250,7 +397,7 @@ namespace Utilities
         }
         public static int[] ToIntArray(this Rectangle pthis)
         {
-            return new int[] { pthis.Left, pthis.Top, pthis.Width,pthis.Height };
+            return new int[] { pthis.Left, pthis.Top, pthis.Width, pthis.Height };
         }
         public static int[] ToIntArray(this Color pthis)
         {
