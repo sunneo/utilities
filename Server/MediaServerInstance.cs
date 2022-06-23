@@ -30,7 +30,15 @@ namespace Utilities.Server
 
         public Locker WriterLocker = new Locker();
         public Locker ReaderLocker = new Locker();
-        
+
+        public IDisposable BeginWriterLocker()
+        {
+            return WriterLocker.Lock();
+        }
+        public IDisposable BeginReaderLocker()
+        {
+            return ReaderLocker.Lock();
+        }
 
 
         public DynamicAttributes Attributes = new DynamicAttributes();
