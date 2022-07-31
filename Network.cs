@@ -44,7 +44,65 @@ namespace Utilities
             strResponse = "";
             return false;
         }
-        public static Bitmap GetImageStream(String url)
+        public static bool Download(String filename,String url, CookieContainer cookie = null)
+        {
+            bool ret = false;
+            HttpWebRequest wreq;
+            HttpWebResponse wresp;
+            Stream mystream;
+
+            mystream = null;
+            wresp = null;
+            try
+            {
+                for (int i = 0; i < 3; ++i)
+                {
+                    try
+                    {
+
+                        wreq = (HttpWebRequest)WebRequest.Create(url);
+                        wreq.AllowWriteStreamBuffering = true;
+                        if (cookie != null)
+                        {
+                            wreq.CookieContainer = cookie;
+                        }
+                        ServicePointManager.ServerCertificateValidationCallback =
+                            delegate { return true; };
+                        if (url.StartsWith("https:"))
+                            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
+                        wresp = (HttpWebResponse)wreq.GetResponse();
+
+                        if ((mystream = wresp.GetResponseStream()) != null)
+                        {
+                            using (FileStream fs = new FileStream(filename, FileMode.Create, FileAccess.Write))
+                            {
+                                mystream.CopyTo(fs);
+                                fs.Close();
+                            }
+
+                            ret = true;
+                            break;
+                        }
+                    }
+                    catch (Exception ee)
+                    {
+                        if (mystream != null)
+                            mystream.Close();
+
+                        if (wresp != null)
+                            wresp.Close();
+                    }
+                }
+                
+            }
+            finally
+            {
+
+            }
+            return ret;
+        }
+        public static Bitmap GetImageStream(String url, CookieContainer cookie = null)
         {
             Bitmap bmp = null;
             HttpWebRequest wreq;
@@ -62,7 +120,14 @@ namespace Utilities
                         
                         wreq = (HttpWebRequest)WebRequest.Create(url);
                         wreq.AllowWriteStreamBuffering = true;
-
+                        if (cookie != null)
+                        {
+                            wreq.CookieContainer = cookie;
+                        }
+                        ServicePointManager.ServerCertificateValidationCallback =
+                            delegate { return true; };
+                        if (url.StartsWith("https:"))
+                            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 
                         wresp = (HttpWebResponse)wreq.GetResponse();
 
@@ -88,8 +153,11 @@ namespace Utilities
 
             }
         }
-
-        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding=null, CookieContainer cookie=null,bool post=false)
+        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding = null, CookieContainer cookie = null, bool post = false)
+        {
+            return GetWebResponseWithStatus(out strResponse, strCmd, timeout, encoding, cookie, post, true);
+        }
+        private static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout, Encoding encoding, CookieContainer cookie,bool post, bool doRetry)
         {
             strResponse = string.Empty;
             
@@ -163,6 +231,13 @@ namespace Utilities
             }
             catch (WebException ex)
             {
+                if(ex!= null && ex.Status == WebExceptionStatus.SecureChannelFailure)
+                {
+                    if (doRetry)
+                    {
+                        return GetWebResponseWithStatus(out strResponse, strCmd, timeout, encoding, cookie, post, false);
+                    }
+                }
                 if (HandleExceptionForGeneralFailure(out strResponse, ex, strCmd))
                 {
                     return !String.IsNullOrEmpty(strResponse);

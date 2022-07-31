@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Xml;
 using System.Xml.Serialization;
 
@@ -155,6 +156,255 @@ namespace Utilities
                 yield return strb.ToString();
             }
             yield break;
+        }
+        public static IEnumerable<T> ForeachTokenize<T>(String str, String[] tokenizer, Func<String, Utilities.Var<T>, bool> parser)
+        {
+            foreach (String token in str.Split(tokenizer, StringSplitOptions.RemoveEmptyEntries))
+            {
+                Utilities.Var<T> value = new Utilities.Var<T>();
+                if (!parser(token, value)) continue;
+                if (!value.HasValue) continue;
+                yield return value.Value;
+            }
+            yield break;
+        }
+        public static bool TryParse(String s, Utilities.Var<int> var)
+        {
+            int value = 0;
+            if (int.TryParse(s, out value))
+            {
+                var.Value = value;
+                return true;
+            }
+            return false;
+        }
+        public static bool TryParse(String s, Utilities.Var<bool> var)
+        {
+            bool value = false;
+            if (bool.TryParse(s, out value))
+            {
+                var.Value = value;
+                return true;
+            }
+            return false;
+        }
+        public static bool TryParse(String s, Utilities.Var<float> var)
+        {
+            float value = 0;
+            if (float.TryParse(s, out value))
+            {
+                var.Value = value;
+                return true;
+            }
+            return false;
+        }
+        public static bool TryParse(String s, Utilities.Var<long> var)
+        {
+            long value = 0;
+            if (long.TryParse(s, out value))
+            {
+                var.Value = value;
+                return true;
+            }
+            return false;
+        }
+        public static bool TryParse(String s, Utilities.Var<double> var)
+        {
+            double value = 0;
+            if (double.TryParse(s, out value))
+            {
+                var.Value = value;
+                return true;
+            }
+            return false;
+        }
+        public class LooperTask
+        {
+            // time period in seconds
+            public int Period;
+            Locker locker = new Locker();
+            Locker lockerRunner = new Locker();
+            public LooperTask(int period)
+            {
+                this.Period = period;
+            }
+            Coroutine.Cancellable cancellable = new Coroutine.Cancellable();
+            public SortedDictionary<DateTime, LinkedList<Action>> tasks = new SortedDictionary<DateTime, LinkedList<Action>>();
+            private static DateTime GetDateTime(int hour, int min, int sec)
+            {
+                return GetDateTime(hour, min, sec, false);
+            }
+            /// <summary>
+            /// create datetime
+            /// </summary>
+            /// <param name="hour"></param>
+            /// <param name="min"></param>
+            /// <param name="sec"></param>
+            /// <param name="toNextDay">Point to next day if assigned time has exceeded now</param>
+            /// <returns></returns>
+            private static DateTime GetDateTime(int hour,int min,int sec, bool toNextDay)
+            {
+                DateTime now = DateTime.Now;
+                DateTime dt = new DateTime(now.Year, now.Month, now.Day, hour, min, sec);
+                if (toNextDay)
+                {
+                    if (dt < now)
+                    {
+                        dt = dt.AddDays(1);
+                    }
+                }
+                return dt;
+            }
+            public LinkedListNode<Action> RegisterJob(Action action,int hour,int min,int sec)
+            {
+                DateTime dt = GetDateTime(hour, min, sec, true);
+                
+                LinkedList<Action> actions = new LinkedList<Action>();
+                LinkedListNode<Action> ret = null;
+                using (var token = locker.Lock())
+                {
+                    if (tasks.ContainsKey(dt))
+                    {
+                        actions = tasks[dt];
+                    }
+                    else
+                    {
+                        tasks[dt] = actions;
+                    }
+                    ret = actions.AddLast(action);
+                }
+                return ret;
+            }
+            public void Cancel(LinkedListNode<Action> action)
+            {
+                if (action == null) return;
+                using (var token = locker.Lock())
+                {
+                    action.List.Remove(action);
+                }
+            }
+            public void Cancel(int hour,int min,int sec)
+            {
+                DateTime dt = GetDateTime(hour, min, sec);
+                using (var token = locker.Lock())
+                {
+                    if (tasks.ContainsKey(dt))
+                    {
+                        tasks[dt].Clear();
+                    }
+                    tasks.Remove(dt);
+                    DateTime next = dt.AddDays(1);
+                    if (tasks.ContainsKey(next))
+                    {
+                        tasks[next].Clear();
+                    }
+                    tasks.Remove(next);
+                }
+            }
+            public void Cancel()
+            {
+                using (var token = locker.Lock())
+                {
+                    tasks.Clear();
+                }
+            }
+            LinkedList<Action> actionsScheduleToRun = new LinkedList<Action>();
+            protected virtual void Runner()
+            {
+                while (!cancellable.CancellationPending)
+                {
+                    LinkedList<Action> actionList = new LinkedList<Action>();
+                    // only lock this section
+                    // make list be re-new
+                    using (var runnerLockerCtx = this.lockerRunner.Lock())
+                    {
+                        actionList = actionsScheduleToRun;
+                        actionsScheduleToRun = new LinkedList<Action>();
+                    }
+                    if (actionList.Count != 0)
+                    {
+                        LinkedListNode<Action> actionNode = actionList.First;
+                        while (actionNode != null)
+                        {
+                            if (actionNode.Value != null)
+                            {
+                                try
+                                {
+                                    actionNode.Value();
+                                }
+                                catch (Exception ee)
+                                {
+                                    Tracer.D(ee.ToString());
+                                }
+                            }
+                            LinkedListNode<Action> next = actionNode.Next;
+                            actionNode = next;
+                        }
+                        actionList.Clear();
+                    }
+                    Thread.Sleep(Period*1000);
+                }
+            }
+            protected virtual void Scheduler()
+            {
+                Coroutine.Cancellable cancellable = this.cancellable;
+                DateTime previouseTrigger = DateTime.Now;
+                while(!cancellable.CancellationPending)
+                {
+                    try
+                    {
+                        DateTime now = DateTime.Now;
+                        using (var token = locker.Lock())
+                        {
+                            List<DateTime> keyList = tasks.Keys.ToList();
+                            for(int i=0; i<keyList.Count; ++i) 
+                            {
+                                DateTime dtBeforeNow = keyList[i];
+                                if (dtBeforeNow > now) break;
+                                LinkedList<Action> list = tasks[dtBeforeNow];
+                                // just lock to transfer jobs(only action) into running queue
+                                using(var runnerLockerCtx = this.lockerRunner.Lock())
+                                {
+                                    LinkedListNode<Action> actionNode = list.First;
+                                    while (actionNode != null)
+                                    {
+                                        if (actionNode.Value != null)
+                                        {
+                                            actionsScheduleToRun.AddLast(actionNode.Value);
+                                        }
+                                        LinkedListNode<Action> next = actionNode.Next;
+                                        actionNode = next;
+                                    }
+                                }
+                                // remove from now
+                                tasks.Remove(dtBeforeNow);
+                                DateTime nextPos = dtBeforeNow.AddDays(1);
+                                // add to next day
+                                tasks[nextPos] = list;
+                            }
+                        }
+                        Thread.Sleep(Period * 1000);
+                    }
+                    catch(Exception ee)
+                    {
+                        Tracer.D(ee.ToString());
+                    }
+                }
+            }
+            public void Start()
+            {
+                Stop();
+                AsyncTask.QueueWorkingItem(Runner);
+                AsyncTask.QueueWorkingItem(Scheduler);
+            }
+            public void Stop()
+            {
+                if (cancellable != null)
+                {
+                    cancellable.Cancel();
+                }
+                cancellable = new Coroutine.Cancellable();
+            }
         }
     }
 }
