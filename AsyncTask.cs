@@ -158,6 +158,7 @@ namespace Utilities
                 }
                 catch (Exception ee)
                 {
+                    Tracer.D(ee.ToString());
                     Console.WriteLine(ee.ToString());
                 }
                 return true;
