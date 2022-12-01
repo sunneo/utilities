@@ -74,9 +74,16 @@ namespace Utilities
         }
         public event EventHandler<CustomFormEditEventArg> OnCustomForm;
         public event EventHandler<CustomFormEditEventArg> OnCustomEditorNeeded;
+        bool fromFile = false;
         public IniConfigurationUI(String filename)
         {
             this.TargetFileName = filename;
+            fromFile = true;
+        }
+        public IniConfigurationUI(T val)
+        {
+            fromFile = false;
+            this.Value = val;
         }
         public bool ShowAll = false;
         public Form BuildForm(String title="")
@@ -84,8 +91,17 @@ namespace Utilities
             UI.SaveConfigurationTemplateForm ret = new UI.SaveConfigurationTemplateForm();
             DataFieldControl.Clear();
             ToolTip tip = new ToolTip();
+            if (fromFile)
+            {
+                this.Value = IniReader.Deserialize<T>(this.TargetFileName, HandleDeserializeField);
+            }
+            else
+            {
+                IniWriter writer = new IniWriter();
+                writer.Serialize(Value);
+                IniReader.DeserializeString<T>(writer.ToString(), HandleDeserializeField);
+            }
             
-            this.Value = IniReader.Deserialize<T>(this.TargetFileName,HandleDeserializeField);
             List<GroupBox> groupBoxs = new List<GroupBox>();
             if (String.IsNullOrEmpty(title))
             {
@@ -264,32 +280,51 @@ namespace Utilities
                             }
                             else
                             {
-                                TextBoxEx tbox = new TextBoxEx();
-                                tbox.Size = new Size(100, (int)(rs.Height));
-                                tbox.Dock = DockStyle.Fill;
-                                tbox.IsChangeTracked = true;
-                                right.Controls.Add(tbox);
-                                tbox.Tag = arg.FullName;
-                                tbox.Text = (String)arg.FieldValue.ToString();
-                                tbox.GotFocus += focusHandler;
-                                tbox.Click += (s, e) =>
+                                FieldAvailableValueAttribute availableValueAttribute = (FieldAvailableValueAttribute)arg.Field.GetCustomAttribute(typeof(FieldAvailableValueAttribute), true);
+                                if (availableValueAttribute != null && availableValueAttribute.FieldValues != null && availableValueAttribute.FieldValues.Length > 0)
                                 {
-                                    if (OnCustomForm != null)
+                                    ComboBox cbox = new ComboBox();
+                                    cbox.DropDownStyle = ComboBoxStyle.DropDownList;
+                                    var enumNames = availableValueAttribute.FieldValues;
+                                    cbox.Items.AddRange(enumNames);
+                                    cbox.Dock = DockStyle.Fill;
+                                    String val = "";
+                                    if (arg.FieldValue != null) val = arg.FieldValue.ToString();
+                                    cbox.Text = val;
+                                    right.Controls.Add(cbox);
+                                    cbox.Tag = arg.FullName;
+                                    cbox.GotFocus += focusHandler;
+                                    this.DataFieldControl.Add(cbox);
+                                }
+                                else
+                                {
+                                    TextBoxEx tbox = new TextBoxEx();
+                                    tbox.Size = new Size(100, (int)(rs.Height));
+                                    tbox.Dock = DockStyle.Fill;
+                                    tbox.IsChangeTracked = true;
+                                    right.Controls.Add(tbox);
+                                    tbox.Tag = arg.FullName;
+                                    tbox.Text = (String)arg.FieldValue.ToString();
+                                    tbox.GotFocus += focusHandler;
+                                    tbox.Click += (s, e) =>
                                     {
-                                        CustomFormEditEventArg args = new CustomFormEditEventArg();
-                                        args.FieldName = name;
-                                        args.DisplayName = strname;
-                                        args.Description = descriptionTxt;
-                                        args.Value = tbox.Text;
-                                        args.SerializeArg = arg;
-                                        OnCustomForm(this, args);
-                                        if (args.Handled)
+                                        if (OnCustomForm != null)
                                         {
-                                            tbox.Text = args.Value.ToString();
+                                            CustomFormEditEventArg args = new CustomFormEditEventArg();
+                                            args.FieldName = name;
+                                            args.DisplayName = strname;
+                                            args.Description = descriptionTxt;
+                                            args.Value = tbox.Text;
+                                            args.SerializeArg = arg;
+                                            OnCustomForm(this, args);
+                                            if (args.Handled)
+                                            {
+                                                tbox.Text = args.Value.ToString();
+                                            }
                                         }
-                                    }
-                                };
-                                this.DataFieldControl.Add(tbox);
+                                    };
+                                    this.DataFieldControl.Add(tbox);
+                                }
                             }
                         }
                     }
@@ -334,7 +369,7 @@ namespace Utilities
         void ret_OKClicked(object sender, EventArgs e)
         {
             Dictionary<String, Object> givenValue = new Dictionary<string, object>();
-            IniWriter writer = IniWriter.Open(this.TargetFileName);
+            
             foreach (Control c in DataFieldControl)
             {
                 String fullName =(String)c.Tag;
@@ -432,10 +467,20 @@ namespace Utilities
                 }
                 givenValue[fullName] = value;
             }
-           
-            writer.GivenValue = givenValue;
-            writer.Serialize(this.Value);
-            writer.Close();
+            if (fromFile)
+            {
+                IniWriter writer = IniWriter.Open(this.TargetFileName);
+                writer.GivenValue = givenValue;
+                writer.Serialize(this.Value);
+                writer.Close();
+            }
+            else
+            {
+                IniWriter writer = new IniWriter();
+                writer.GivenValue = givenValue;
+                writer.Serialize(this.Value);
+                this.Value = IniReader.DeserializeString<T>(writer.ToString());
+            }
         }
 
         void btn_colorPickerClick(object sender, EventArgs e)

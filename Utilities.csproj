@@ -22,7 +22,7 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
-    <Optimize>true</Optimize>
+    <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
@@ -175,6 +175,7 @@
     <Compile Include="OptionParser\AppOptionValues.cs" />
     <Compile Include="OptionParser\Attributes\ArgumentDescAttribute.cs" />
     <Compile Include="OptionParser\Attributes\AttributeConfigureUIVisible.cs" />
+    <Compile Include="OptionParser\Attributes\FieldAvailableValueAttribute.cs" />
     <Compile Include="OptionParser\Attributes\FieldDisplayNameAttribute.cs" />
     <Compile Include="OptionParser\Attributes\FlattenArrayLengthName.cs" />
     <Compile Include="OptionParser\Attributes\FlattenArrayName.cs" />
