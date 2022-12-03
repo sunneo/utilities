@@ -88,7 +88,19 @@ namespace Utilities
         public bool ShowAll = false;
         public Form BuildForm(String title="")
         {
+            return BuildForm(title, null);
+        }
+        public Form BuildForm(String title,Action loadDefault)
+        {
             UI.SaveConfigurationTemplateForm ret = new UI.SaveConfigurationTemplateForm();
+            if (loadDefault != null)
+            {
+                ret.ButtonDefaultVisible = true;
+                ret.DefaultClicked += (s, e) =>
+                {
+                    loadDefault();
+                };
+            }
             DataFieldControl.Clear();
             ToolTip tip = new ToolTip();
             if (fromFile)

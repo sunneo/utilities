@@ -13,6 +13,7 @@ namespace Utilities.UI
     public partial class SaveConfigurationTemplateForm : Form
     {
         public event EventHandler OKClicked;
+        public event EventHandler DefaultClicked;
 
         public Panel MainPanel
         {
@@ -57,10 +58,30 @@ namespace Utilities.UI
             this.DialogResult = System.Windows.Forms.DialogResult.OK;
             Close();
         }
-
+        public bool ButtonDefaultVisible
+        {
+            get
+            {
+                return buttonDefault.Visible;
+            }
+            set
+            {
+                buttonDefault.Visible = value;
+            }
+        }
         private void buttonCancel_Click(object sender, EventArgs e)
         {
             this.DialogResult = System.Windows.Forms.DialogResult.Cancel;
+            Close();
+        }
+
+        private void buttonDefault_Click(object sender, EventArgs e)
+        {
+            if (DefaultClicked != null)
+            {
+                DefaultClicked(this, e);
+            }
+            this.DialogResult = System.Windows.Forms.DialogResult.OK;
             Close();
         }
     }
