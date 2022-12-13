@@ -146,7 +146,7 @@ namespace Utilities
             }
         }
         BasicWriter writer = null;
-        protected virtual BasicWriter StartIniLineWriter(String filename)
+        public virtual BasicWriter StartIniLineWriter(String filename)
         {
             if (writer == null)
             {
@@ -154,7 +154,7 @@ namespace Utilities
             }
             return writer;
         }
-        protected virtual BasicWriter StartDictionaryWriter(IDictionary<String, object> dict)
+        public virtual BasicWriter StartDictionaryWriter(IDictionary<String, object> dict)
         {
             if (writer == null)
             {

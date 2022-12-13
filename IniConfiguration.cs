@@ -25,7 +25,7 @@ namespace Utilities
                 }
                 ShouldNotify = false;
                 IniWriter writer = new IniWriter();
-                writer.FileName = FileName;
+                writer.StartIniLineWriter(FileName);
                 writer.Serialize(Data);
                 writer.Save();
                 writer.Close();
