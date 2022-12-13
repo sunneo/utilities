@@ -33,7 +33,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using Utilities.OptionParser.Attributes;
 
 namespace Utilities
@@ -104,10 +103,7 @@ namespace Utilities
         [STAThread]
         public static void Test2()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            IniConfigurationUI<ExampleClass2> ui = new IniConfigurationUI<ExampleClass2>("test.ini");
-            Application.Run(ui.BuildForm());
+            
         }
 
         public static void Main2()
@@ -618,6 +614,44 @@ namespace Utilities
                 ParseStream(fs);
             }
         }
+        public static T Deserialize<T>(IDictionary<String, object> dic, EventHandler<OnSerializeNotificationEventArgs> OnSerializingMember = null)
+        {
+            IniReader reader = IniReader.FromDictionary(dic);
+            Type t = typeof(T);
+            var constructor = t.GetConstructor(new Type[] { });
+            T ret = (T)constructor.Invoke(new object[] { });
+            DeserializeFields(reader, ret, "", OnSerializingMember);
+            return ret;
+        }
+
+        private void ParseDictionary(IDictionary<String, object> dic)
+        {
+            foreach (String key in dic.Keys)
+            {
+                List<String> val = new List<string>();
+                if (Data.ContainsKey(key))
+                {
+                    val = Data[key];
+                }
+                object dicVal = dic[key];
+                if (dicVal != null)
+                {
+                    val.Add(dicVal.ToString());
+                }
+                else
+                {
+
+                }
+            }
+        }
+
+        public static IniReader FromDictionary(IDictionary<String, object> dic)
+        {
+            IniReader ret = new IniReader();
+            ret.ParseDictionary(dic);
+            return ret;
+        }
+
         public static IniReader FromString(String stringContent)
         {
             IniReader ret = new IniReader();

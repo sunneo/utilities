@@ -39,33 +39,179 @@ namespace Utilities
 {
     public class IniWriter : IDisposable
     {
-        volatile bool bIsDisposed = false;
-        List<String> Lines = new List<string>();
-        public String FileName;
+        protected volatile bool bIsDisposed = false;
+        public class BasicWriter
+        {
+            public virtual void WriteRaw(String line)
+            {
+
+            }
+            public virtual void Write(String key, String val)
+            {
+
+            }
+            public virtual void Close()
+            {
+
+            }
+            public virtual void Save()
+            {
+
+            }
+            public virtual void Reset()
+            {
+
+            }
+            public override string ToString()
+            {
+                return base.ToString();
+            }
+        }
+        public class IniLineWriter : BasicWriter
+        {
+            public String FileName;
+            public List<String> Lines = new List<string>();
+            public override void WriteRaw(string line)
+            {
+                Lines.Add(line);
+            }
+            public override void Write(string key, string val)
+            {
+                Lines.Add(key + "=" + val);
+            }
+            public override void Save()
+            {
+                if (String.IsNullOrEmpty(FileName)) return;
+                using (var fs = new FileStream(this.FileName, FileMode.Create, FileAccess.Write, FileShare.Read))
+                using (var wr = new StreamWriter(fs))
+                {
+                    foreach (String s in Lines)
+                    {
+                        wr.WriteLine(s);
+                    }
+                }
+            }
+            public override void Close()
+            {
+                Save();
+                Lines.Clear();
+                FileName = "";
+            }
+            public override string ToString()
+            {
+                StringBuilder strb = new StringBuilder();
+                foreach (String s in Lines)
+                {
+                    strb.AppendLine(s);
+                }
+                return strb.ToString();
+            }
+            public IniLineWriter(String filename)
+            {
+                this.FileName = filename;
+            }
+        }
+        public class DictionaryWriter : BasicWriter
+        {
+            IDictionary<String, object> dict = null;
+
+            public override void WriteRaw(string line)
+            {
+
+            }
+            public override void Write(string key, string val)
+            {
+                dict[key] = val;
+            }
+            public override void Save()
+            {
+
+            }
+            public override void Close()
+            {
+
+            }
+            public override string ToString()
+            {
+                StringBuilder strb = new StringBuilder();
+                foreach (String s in dict.Keys)
+                {
+                    strb.AppendLine(s + "=" + dict[s]);
+                }
+                return strb.ToString();
+            }
+            public DictionaryWriter(IDictionary<String, object> target)
+            {
+                this.dict = target;
+            }
+        }
+        BasicWriter writer = null;
+        protected virtual BasicWriter StartIniLineWriter(String filename)
+        {
+            if (writer == null)
+            {
+                writer = new IniLineWriter(filename);
+            }
+            return writer;
+        }
+        protected virtual BasicWriter StartDictionaryWriter(IDictionary<String, object> dict)
+        {
+            if (writer == null)
+            {
+                writer = new DictionaryWriter(dict);
+            }
+            return writer;
+        }
+
+
+
         public Dictionary<String, Object> GivenValue = new Dictionary<string, object>();
         public static IniWriter Open(String file, bool appendFile = false)
         {
             IniWriter writer = new IniWriter();
+            BasicWriter basicWriter = writer.StartIniLineWriter(file);
             if (File.Exists(file) && appendFile)
             {
-                writer.Lines.AddRange(File.ReadAllLines(file));
+                foreach (String line in File.ReadAllLines(file))
+                {
+                    basicWriter.WriteRaw(line);
+                }
             }
-            writer.FileName = file;
             return writer;
         }
         public static String SerializeToString(Object o)
         {
             IniWriter writer = new IniWriter();
+            writer.StartIniLineWriter("");
             writer.Serialize(o);
             return writer.ToString();
         }
-
-        public void WriteCategory(String category)
+        public static void SerializeToDictionary(IDictionary<String, object> dic, Object o)
         {
-            this.Lines.Add("[" + category + "]");
+            IniWriter writer = new IniWriter();
+            writer.StartDictionaryWriter(dic);
+            writer.Serialize(o);
         }
-        public void WriteComment(String content)
+        /// <summary>
+        /// serialize to a given writer
+        /// </summary>
+        /// <param name="basicWriter"></param>
+        /// <param name="o"></param>
+        public static void SerializeToWriter(BasicWriter basicWriter, Object o)
         {
+            IniWriter writer = new IniWriter();
+            writer.writer = basicWriter;
+            writer.Serialize(o);
+        }
+
+        public virtual void WriteCategory(String category)
+        {
+            if (this.writer == null) return;
+            this.writer.WriteRaw("[" + category + "]");
+        }
+        public virtual void WriteComment(String content)
+        {
+            if (this.writer == null) return;
             StringReader reader = new StringReader(content);
             List<String> lines = new List<string>();
             int maxLength = 0;
@@ -81,36 +227,38 @@ namespace Utilities
             }
             if (lines.Count == 1)
             {
-                Lines.Add("#  " + lines[0]);
+                this.writer.WriteRaw("#  " + lines[0]);
             }
             else
             {
                 String separator = "#".PadLeft(maxLength + 3, '#');
-                Lines.Add(separator);
+                this.writer.WriteRaw(separator);
                 foreach (String s in lines)
                 {
-                    Lines.Add("#  " + s);
+                    this.writer.WriteRaw("#  " + s);
                 }
-                Lines.Add(separator);
+                this.writer.WriteRaw(separator);
             }
         }
-        public void Write(String key, String val)
+        public virtual void Write(String key, String val)
         {
-            Lines.Add(key + "=" + val);
+            if (this.writer == null) return;
+            this.writer.Write(key, val);
+
         }
-        public void Write(String key, bool val)
-        {
-            this.Write(key, val.ToString());
-        }
-        public void Write(String key, int val)
+        public virtual void Write(String key, bool val)
         {
             this.Write(key, val.ToString());
         }
-        public void Write(String key, double val)
+        public virtual void Write(String key, int val)
         {
             this.Write(key, val.ToString());
         }
-        public void Write(String key, int[] val)
+        public virtual void Write(String key, double val)
+        {
+            this.Write(key, val.ToString());
+        }
+        public virtual void Write(String key, int[] val)
         {
             StringBuilder strb = new StringBuilder();
             for (int i = 0; i < val.Length; ++i)
@@ -124,7 +272,7 @@ namespace Utilities
             }
             this.Write(key, strb.ToString());
         }
-        public void Write(String key, double[] val)
+        public virtual void Write(String key, double[] val)
         {
             StringBuilder strb = new StringBuilder();
             for (int i = 0; i < val.Length; ++i)
@@ -138,23 +286,23 @@ namespace Utilities
             }
             this.Write(key, strb.ToString());
         }
-        public void Write(String key, Point val)
+        public virtual void Write(String key, Point val)
         {
             this.Write(key, val.ToIntArray());
         }
-        public void Write(String key, Size val)
+        public virtual void Write(String key, Size val)
         {
             this.Write(key, val.ToIntArray());
         }
-        public void Write(String key, Rectangle val)
+        public virtual void Write(String key, Rectangle val)
         {
             this.Write(key, val.ToIntArray());
         }
-        public void Write(String key, Color val)
+        public virtual void Write(String key, Color val)
         {
             this.Write(key, val.ToIntArray());
         }
-        private void SerializeObject(object ret, String prefix)
+        protected virtual void SerializeObject(object ret, String prefix)
         {
             Type t = ret.GetType();
             if (t == typeof(DBNull)) return;
@@ -302,29 +450,27 @@ namespace Utilities
 
 
         }
-        public void Serialize(object o)
+        public virtual void Serialize(object o)
         {
             SerializeObject(o, "");
         }
-        public void Save()
+        public virtual void Save()
         {
-            if (String.IsNullOrEmpty(FileName)) return;
-            using (var fs = new FileStream(this.FileName, FileMode.Create, FileAccess.Write, FileShare.Read))
-            using (var wr = new StreamWriter(fs))
+            if (writer != null)
             {
-                foreach (String s in Lines)
-                {
-                    wr.WriteLine(s);
-                }
+                writer.Save();
             }
+
         }
-        public void Close()
+        public virtual void Close()
         {
-            Save();
-            Lines.Clear();
-            FileName = "";
+            if (writer != null)
+            {
+                writer.Close();
+            }
+
         }
-        public void Dispose()
+        public virtual void Dispose()
         {
             if (bIsDisposed) return;
             this.Close();
@@ -333,12 +479,11 @@ namespace Utilities
 
         public override string ToString()
         {
-            StringBuilder strb = new StringBuilder();
-            foreach (String s in Lines)
+            if (writer != null)
             {
-                strb.AppendLine(s);
+                return writer.ToString();
             }
-            return strb.ToString();
+            return "";
         }
 
         public class ExampleClass
