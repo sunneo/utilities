@@ -110,6 +110,7 @@ namespace Utilities
             else
             {
                 IniWriter writer = new IniWriter();
+                writer.StartIniLineWriter("");
                 writer.Serialize(Value);
                 IniReader.DeserializeString<T>(writer.ToString(), HandleDeserializeField);
             }
@@ -489,6 +490,7 @@ namespace Utilities
             else
             {
                 IniWriter writer = new IniWriter();
+                writer.StartIniLineWriter("");
                 writer.GivenValue = givenValue;
                 writer.Serialize(this.Value);
                 this.Value = IniReader.DeserializeString<T>(writer.ToString());

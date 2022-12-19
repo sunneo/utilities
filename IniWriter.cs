@@ -145,7 +145,7 @@ namespace Utilities
                 this.dict = target;
             }
         }
-        BasicWriter writer = null;
+        BasicWriter writer = new IniLineWriter(""); // default to ini line writer
         public virtual BasicWriter StartIniLineWriter(String filename)
         {
             if (writer == null)
