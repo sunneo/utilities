@@ -152,6 +152,10 @@ namespace Utilities
             {
                 writer = new IniLineWriter(filename);
             }
+            else if(writer != null && writer is IniLineWriter)
+            {
+                (writer as IniLineWriter).FileName = filename;
+            }
             return writer;
         }
         public virtual BasicWriter StartDictionaryWriter(IDictionary<String, object> dict)
