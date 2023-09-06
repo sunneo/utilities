@@ -323,9 +323,25 @@ namespace Utilities
                     }
                     if (actionList.Count != 0)
                     {
+                        int count = actionList.Count;
+                        Dictionary<LinkedListNode<Action>, LinkedListNode<Action>> visited = new Dictionary<LinkedListNode<Action>, LinkedListNode<Action>>();
                         LinkedListNode<Action> actionNode = actionList.First;
+                        
+                        int hit = 0;
                         while (actionNode != null)
                         {
+                            if (visited.ContainsKey(actionNode))
+                            {
+                                if(hit < count)
+                                {
+                                    continue;
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                            ++hit;
                             if (actionNode.Value != null)
                             {
                                 try
@@ -337,6 +353,7 @@ namespace Utilities
                                     Tracer.D(ee.ToString());
                                 }
                             }
+                            visited[actionNode] = actionNode;
                             LinkedListNode<Action> next = actionNode.Next;
                             actionNode = next;
                         }

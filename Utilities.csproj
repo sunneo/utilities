@@ -263,9 +263,6 @@
     <Compile Include="UI\SaveConfigurationTemplateForm.Designer.cs">
       <DependentUpon>SaveConfigurationTemplateForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="UI\SDLMMControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
     <Compile Include="UI\TextBoxEx.cs">
       <SubType>Component</SubType>
     </Compile>

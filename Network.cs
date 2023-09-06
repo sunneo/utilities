@@ -44,7 +44,7 @@ namespace Utilities
             strResponse = "";
             return false;
         }
-        public static bool Download(String filename,String url, CookieContainer cookie = null)
+        public static bool Download(String filename,String url, CookieContainer cookie = null, Action<Exception> onError=null)
         {
             bool ret = false;
             HttpWebRequest wreq;
@@ -92,9 +92,20 @@ namespace Utilities
 
                         if (wresp != null)
                             wresp.Close();
+                        if (onError != null)
+                        {
+                            onError(ee);
+                        }
                     }
                 }
                 
+            }
+            catch(Exception ex)
+            {
+                if(onError!=null)
+                {
+                    onError(ex);
+                }
             }
             finally
             {
@@ -200,6 +211,7 @@ namespace Utilities
                     using (Stream reqStream = request.GetRequestStream())
                     {
                         reqStream.Write(byteArray, 0, byteArray.Length);
+                        reqStream.Close();
                     }//end using
                 }
                
@@ -223,9 +235,11 @@ namespace Utilities
                     {
                         readStream = new StreamReader(receiveStream, Encoding.GetEncoding(response.CharacterSet));
                     }
-
-                    strResponse = readStream.ReadToEnd();
-                    readStream.Close();
+                    using (readStream)
+                    {
+                        strResponse = readStream.ReadToEnd();
+                        readStream.Close();
+                    }
                 }
                 return true;
             }

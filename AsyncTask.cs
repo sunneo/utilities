@@ -218,7 +218,7 @@ namespace Utilities
                     Run();
                 }
                 IsAvailable = true;
-                while (PollAndRunJobAfterFinishJob()) ;
+                jobFlusher();
                 if (DisposeAfterFinish)
                 {
                     RunningDisposeAfterFinish = true;
