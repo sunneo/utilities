@@ -35,6 +35,42 @@ using System.Threading.Tasks;
 namespace Utilities
 {
 
+
+    /**
+	 *  Usage:
+	 *  In C
+	 *  <pre>
+	 *  extern "C" __declspec(dllexport) int sum(double a, double b)
+	 *  {
+	 *      return a+b;   
+	 *  }
+	 *  extern "C" __declspec(dllexport) int sum(double a, double b)
+	 *  {
+	 *      return sqrt(v);
+	 *  }
+	 *  </pre>
+     *  extern "C"  __declspec(dllexport) double __stdcall dlsqrt(double v);
+	 *  In C#
+	 *  <pre>
+	 *  
+	 *  static class Program
+     *   {
+     *      [UnmanagedFunctionPointer(CallingConvention.Cdecl)]    delegate int sumfnc(double a, double b);
+     *      [UnmanagedFunctionPointer(CallingConvention.StdCall)]  delegate double dlsqrtfnc(double v);
+     *      public static void Main(String[] argv)
+     *      {
+     *          NativeDLLImport dlimport = new NativeDLLImport("DLLTest.dll");
+     *          sumfnc sum = null;
+     *          dlsqrtfnc dlsqrt = null;
+     *          dlimport.TryGetFunction("sum", out sum);
+     *          dlimport.TryGetFunction("_dlsqrt@8", out dlsqrt);
+     *          Console.WriteLine("call native sum({0},{1})={2}", 1, 2, sum(1, 2));
+     *          Console.WriteLine("call native dlsqrt({0})={1}", 100, dlsqrt(100));
+     *          Console.ReadKey();
+     *      }
+     *  }
+	 *  <pre>
+	 */
     public class NativeDLLImport:IDisposable
     {
         bool HasLoad = false;
