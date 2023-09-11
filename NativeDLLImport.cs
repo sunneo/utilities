@@ -74,6 +74,7 @@ namespace Utilities
     public class NativeDLLImport:IDisposable
     {
         bool HasLoad = false;
+
         [DllImport("kernel32.dll", SetLastError = true)]
         internal static extern IntPtr LoadLibrary(string dllToLoad);
 
