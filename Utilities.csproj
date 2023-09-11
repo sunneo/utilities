@@ -197,6 +197,7 @@
     <Compile Include="ScreenCapturer.Designer.cs">
       <DependentUpon>ScreenCapturer.cs</DependentUpon>
     </Compile>
+    <Compile Include="SequentialDictionary.cs" />
     <Compile Include="StringCipher.cs" />
     <Compile Include="Sys\MotherboardInfo.cs" />
     <Compile Include="Tracer.cs" />
