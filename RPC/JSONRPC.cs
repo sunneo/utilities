@@ -10,6 +10,11 @@ using System.Threading.Tasks;
 
 namespace Utilities.RPC
 {
+    public class JSONRPCError
+    {
+        public String Message;
+        public Exception error;
+    }
     public interface IJsonRpcClient
     {
         bool IsInvoking { get; }
@@ -25,14 +30,18 @@ namespace Utilities.RPC
     public interface IJsonRpcServer
     {
         event EventHandler<JsonRpcServerHandleEventArgs> OnHandleRPC;
+        event EventHandler OnRequestHandled;
         void Start();
         void Stop();
+        bool IsAlive { get; }
     }
+    
+
     public class JSONRPC
     {
         TextReader Reader;
         TextWriter Writer;
-
+        public event EventHandler<JSONRPCError> OnError;
         internal class ClientImpl : IJsonRpcClient
         {
             volatile bool mInvoking = false;
@@ -116,7 +125,12 @@ namespace Utilities.RPC
             CoroutineHost Host = new CoroutineHost(100);
             Coroutine.Coroutine Cor;
             volatile bool IsRunning = false;
+
+            public bool IsAlive => IsRunning;
+            public event EventHandler OnRequestHandled;
+
             public event EventHandler<JsonRpcServerHandleEventArgs> OnHandleRPC;
+
             public ServerImpl(JSONRPC rpc)
             {
                 this.mRPC = rpc;
@@ -138,6 +152,17 @@ namespace Utilities.RPC
                             OnHandleRPC(this, args);
                             mRPC.Send(args.Output);
                         }
+                        try
+                        {
+                            if (OnRequestHandled != null)
+                            {
+                                OnRequestHandled(this, EventArgs.Empty);
+                            }
+                        }
+                        catch(Exception ee)
+                        {
+
+                        }
                         yield return true;
                     }
                 }
@@ -151,6 +176,7 @@ namespace Utilities.RPC
                     Cor = new Coroutine.Coroutine(50, this.Host);
                 }
                 Cor.QueueWorkingItem(Runner());
+                IsRunning = true;
             }
             public void Stop()
             {
@@ -179,9 +205,24 @@ namespace Utilities.RPC
             if (String.IsNullOrEmpty(content))
             {
                 output = null;
+                if (OnError != null)
+                {
+                    OnError(this, new JSONRPCError() { Message = "Get Empty String" });
+                }
                 return false;
             }
-            output = Utility.JSON.Deserialize<T>(content);
+            try
+            {
+                output = Utility.JSON.Deserialize<T>(content);
+            }
+            catch(Exception ee)
+            {
+                output = null;
+                if(OnError != null)
+                {
+                    OnError(this, new JSONRPCError() { error = ee, Message=ee.Message });
+                }
+            }
             return output != null;
         }
         public void Send(JSONRPCMessage msg)

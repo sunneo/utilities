@@ -166,9 +166,9 @@ namespace Utilities
         }
         public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout = 30000, Encoding encoding = null, CookieContainer cookie = null, bool post = false)
         {
-            return GetWebResponseWithStatus(out strResponse, strCmd, timeout, encoding, cookie, post, true);
+            return GetWebResponseWithStatus(out strResponse, strCmd, timeout, encoding, cookie, post, false);
         }
-        private static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout, Encoding encoding, CookieContainer cookie,bool post, bool doRetry)
+        public static bool GetWebResponseWithStatus(out String strResponse, string strCmd, Int32 timeout, Encoding encoding, CookieContainer cookie,bool post, bool doRetry)
         {
             strResponse = string.Empty;
             

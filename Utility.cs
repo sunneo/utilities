@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -32,7 +33,7 @@ namespace Utilities
             public static String Serialize(object o)
             {
                 StringBuilder strb = new StringBuilder();
-                using (JsonTextWriter writer = new JsonTextWriter(new StringWriter(strb)))
+                using (TextWriter writer = new StringWriter(strb))
                 {
                     JsonSerializer serializer = new JsonSerializer();
                     serializer.Serialize(writer, o);
@@ -81,7 +82,47 @@ namespace Utilities
             }
             return serializer;
         }
-
+        public static Process RunCommandLine(String file,String[] args)
+        {
+            Process process = new Process();
+            ProcessStartInfo info = process.StartInfo;
+            info.CreateNoWindow = true;
+            info.FileName = file;
+            if(args != null && args.Length> 0)
+            {
+                info.Arguments = String.Join(" ", args);
+            }
+            info.WindowStyle = ProcessWindowStyle.Hidden;
+            info.WorkingDirectory = Environment.CurrentDirectory;
+            info.UseShellExecute = false;
+            info.RedirectStandardOutput = true;
+            info.RedirectStandardInput = true;
+            info.RedirectStandardError = true;
+            process.EnableRaisingEvents = true;
+            process.Start();
+            return process;
+        }
+        public static int RunCommandLine(String file, String[] args, out String stdout, out String stderr)
+        {
+            StringBuilder strbStdout = new StringBuilder();
+            StringBuilder strbError = new StringBuilder();
+            Process process = RunCommandLine(file, args);
+            
+            process.OutputDataReceived += (s, e) =>
+            {
+                strbStdout.AppendLine(e.Data);
+            };
+            process.ErrorDataReceived += (s, e) =>
+            {
+                strbError.AppendLine(e.Data);
+            };
+            process.BeginErrorReadLine();
+            process.BeginOutputReadLine();
+            process.WaitForExit();
+            stdout = strbStdout.ToString();
+            stderr = strbError.ToString();
+            return process.ExitCode;
+        }
         public static string Serialize(object o,params Type[] extraTypes)
         {
             try

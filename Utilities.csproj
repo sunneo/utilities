@@ -188,6 +188,7 @@
     <Compile Include="OptionParser\OptionParse\OptionParserUnitBase.cs" />
     <Compile Include="OptionParser\OptionParse\RawStringParser.cs" />
     <Compile Include="OptionParser\Properties\AssemblyInfo.cs" />
+    <Compile Include="ProcessChecker.cs" />
     <Compile Include="ReflectionHelper.cs" />
     <Compile Include="RegistryHelper.cs" />
     <Compile Include="RPC\JSONRPC.cs" />
