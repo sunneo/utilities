@@ -541,6 +541,8 @@ namespace Utilities
             return new List<double>();
         }
         String CurrentCategory = "";
+        private bool appendOnSameName = true;
+
         private void ParseStream(TextReader fs)
         {
             {
@@ -574,7 +576,7 @@ namespace Utilities
                                 {
                                     String v = line.Substring(idx + 1).Trim();
                                     List<String> list = null;
-                                    if (Data.ContainsKey(k))
+                                    if (Data.ContainsKey(k) && appendOnSameName)
                                     {
                                         list = Data[k];
                                     }
@@ -658,9 +660,10 @@ namespace Utilities
             ret.ParseString(stringContent);
             return ret;
         }
-        public static IniReader FromFile(String filename)
+        public static IniReader FromFile(String filename, bool appendOnSameName=true)
         {
             IniReader ret = new IniReader();
+            ret.appendOnSameName = appendOnSameName;
             if (File.Exists(filename))
             {
                 ret.ParseFile(filename);
