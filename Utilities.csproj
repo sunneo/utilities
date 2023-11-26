@@ -70,13 +70,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'DebuggableRelease|AnyCPU'">
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\DebuggableRelease\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>
+    </DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <DebugType>full</DebugType>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <ErrorReport>prompt</ErrorReport>
     <CodeAnalysisRuleSet>ManagedMinimumRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>false</Prefer32Bit>
+    <Optimize>true</Optimize>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'DebuggableRelease|x64'">
     <DebugSymbols>true</DebugSymbols>
@@ -146,6 +148,7 @@
     <Compile Include="DataBase\SQLiteBaseTableToDatasetConverter.cs" />
     <Compile Include="DataBase\SQLiteDBBuilder.cs" />
     <Compile Include="DataBase\TableToDatasetConverter.cs" />
+    <Compile Include="Delegates.cs" />
     <Compile Include="Interfaces\ICancellable.cs" />
     <Compile Include="Coroutine\ProcessStatusMeasure.cs" />
     <Compile Include="Coroutine\Waiter\Client\IWaiter.cs" />
@@ -167,6 +170,10 @@
     <Compile Include="Interfaces\IExcelReader.cs" />
     <Compile Include="Interfaces\IExcelReaderFactory.cs" />
     <Compile Include="Interfaces\IProcessStatusMeasure.cs" />
+    <Compile Include="IpcCli\BaseIpcCliServer.cs" />
+    <Compile Include="IpcCli\IpcCli.cs" />
+    <Compile Include="IpcCli\IpcCliFileServerExample.cs" />
+    <Compile Include="IpcCli\IpcCliRoot.cs" />
     <Compile Include="JobQueue.cs" />
     <Compile Include="LRUDictionary.cs" />
     <Compile Include="MD5Directory.cs" />

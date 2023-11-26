@@ -165,6 +165,16 @@ namespace Utilities
             this.Value = val;
             HasValue = true;
         }
+        public Var(Func<T> Getter,Action<T> Setter)
+        {
+            this.Getter = Getter;
+            this.Setter = Setter;
+        }
+        public Var(T val, Func<T> Getter, Action<T> Setter):this(val)
+        {
+            this.Getter = Getter;
+            this.Setter = Setter;
+        }
         public static implicit operator Var<T>(T t)
         {
             return new Var<T>(t);

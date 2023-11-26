@@ -32,10 +32,18 @@ namespace Utilities
             }
             public static String Serialize(object o)
             {
+                return Serialize(o, false);
+            }
+            public static String Serialize(object o, bool formatted)
+            {
                 StringBuilder strb = new StringBuilder();
                 using (TextWriter writer = new StringWriter(strb))
                 {
                     JsonSerializer serializer = new JsonSerializer();
+                    if(formatted)
+                    {
+                        serializer.Formatting = Newtonsoft.Json.Formatting.Indented;
+                    }
                     serializer.Serialize(writer, o);
                 }
                 return strb.ToString();
@@ -52,6 +60,61 @@ namespace Utilities
             FileStream fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             StreamReader freader = new StreamReader(fs, Encoding.Default, true);
             return freader;
+        }
+        /// Get the leftmost n characters of a string, return empty string if error.
+        public static String Left(String str, int n)
+        {
+            if (n < 0)
+            {
+                Tracer.D("Unreasonable Parameter: " + n); //$NON-NLS-1$
+                return str;
+            }
+
+            try
+            {
+                int strLen = str.Length;
+                if (n > strLen)
+                {
+                    n = strLen;
+                }
+
+                return str.Substring(0, n);
+            }
+            catch (Exception e)
+            {
+                return "";
+            }
+        }
+        public static List<String> Tokenize(String str, String delimiter)
+        {
+            if (String.IsNullOrEmpty(str))
+            {
+                return new List<String>();
+            }
+            List<String> tokens;
+            tokens = new List<String>();
+            int len = str.Length;
+            int idx = 0;
+            String val = str;
+            int delimLen = delimiter.Length;
+            while (idx < len)
+            {
+                int tok = val.IndexOf(delimiter);
+                if (tok < 0)
+                {
+                    tokens.Add(val);
+                    break;
+                }
+                String left = Left(val, tok);
+                tokens.Add(left);
+                idx = tok + delimLen;
+                val = val.Substring(tok + delimLen);
+            }
+            return tokens;
+        }
+        public static T[] List<T>(params T[] parms)
+        {
+            return parms;
         }
         public static StreamReader SharedUTF8StreamReader(String filepath)
         {
