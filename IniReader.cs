@@ -588,19 +588,118 @@ namespace Utilities
         String CurrentCategory = "";
         private bool appendOnSameName = true;
 
+        protected static bool PreprocessScanInclude(LinkedList<String> lines, LinkedList<LinkedListNode<String>> includes)
+        {
+            LinkedListNode<String> node = lines.First;
+            bool includeAdded = true;
+            // initial collect
+            while (node != null)
+            {
+                string line = node.Value;
+                if (line == null) break;
+                line = line.Trim();
+                if (!String.IsNullOrEmpty(line))
+                {
+                    if (line.StartsWith("!Include", StringComparison.InvariantCultureIgnoreCase))
+                    {
+                        includes.AddLast(node);
+                        includeAdded = true;
+                        node = node.Next;
+                        continue;
+                    }
+                    
+                    if (line[0] == '#')
+                    {
+                        node = node.Next;
+                        continue;
+                    }
+                }
+                node = node.Next;
+            }
+            return includeAdded;
+        }
+        public static String DumpStringLines(LinkedList<String> lines)
+        {
+            StringBuilder strb = new StringBuilder();
+            foreach(String line in lines)
+            {
+                strb.AppendLine(line);
+            }
+            return strb.ToString();
+        }
+        protected static void Preprocess(LinkedList<String> lines)
+        {
+            LinkedList<LinkedListNode<String>> includes = new LinkedList<LinkedListNode<string>>();
+            PreprocessScanInclude(lines, includes);
+            // expand all include statement
+            while (includes.Count > 0)
+            {
+                LinkedListNode<String> includeNode = includes.First.Value;
+                String line = includeNode.Value;
+                line = line.Substring("!Include".Length);
+                int idxOfComment = line.IndexOf('#');
+                if (idxOfComment != -1)
+                {
+                    line = line.Substring(0, idxOfComment);
+                }
+                line = line.Trim();
+                if (File.Exists(line))
+                {
+                    // read, add
+                    LinkedList<String> anotherFile = null;
+                    using (StreamReader fsAnother = new StreamReader(new BufferedStream(new FileStream(line, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))))
+                    {
+                        anotherFile = ReadAsLines(fsAnother);
+                    }
+                    if (anotherFile != null)
+                    {
+                        PreprocessScanInclude(anotherFile, includes); // scan and add new includes
+                        LinkedListNode<String> afterNode = includeNode;
+                        LinkedListNode<String> anotherLine = anotherFile.First;
+                        while (anotherLine != null)
+                        {
+                            LinkedListNode<String> next = anotherLine.Next;
+                            anotherFile.Remove(anotherLine);
+                            lines.AddAfter(afterNode, anotherLine);
+                            afterNode = afterNode.Next;
+                            anotherLine = next;
+                        }
+                        includeNode.Value = "### Content Included From "+line;
+                    }
+                }
+                includes.RemoveFirst();
+            }
+        }
+        protected static LinkedList<String> ReadAsLines(TextReader fs)
+        {
+            LinkedList<String> lines = new LinkedList<string>();
+            while (true)
+            {
+                string line = fs.ReadLine();
+                if (line == null) break;
+                lines.AddLast(line);
+            }
+            return lines;
+        }
         private void ParseStream(TextReader fs)
         {
             {
                 try
                 {
-                    while (true)
+                    LinkedList<String> lines = ReadAsLines(fs);
+                    Preprocess(lines);
+                    IEnumerator<String> enumerator= lines.GetEnumerator();
+                    while (enumerator.MoveNext())
                     {
-                        string line = fs.ReadLine();
+                        string line = enumerator.Current;
                         if (line == null) break;
                         line = line.Trim();
                         if (!String.IsNullOrEmpty(line))
                         {
-                            if (line[0] == '#') continue;
+                            if (line[0] == '#')
+                            {
+                                continue;
+                            }
                             if (line[0] == '[')
                             {
                                 String[] splits = line.Split('[', ']');
