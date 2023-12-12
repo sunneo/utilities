@@ -632,6 +632,7 @@ namespace Utilities
             LinkedList<LinkedListNode<String>> includes = new LinkedList<LinkedListNode<string>>();
             PreprocessScanInclude(lines, includes);
             // expand all include statement
+            Dictionary<String, String> visited = new Dictionary<string, string>();
             while (includes.Count > 0)
             {
                 LinkedListNode<String> includeNode = includes.First.Value;
@@ -645,6 +646,9 @@ namespace Utilities
                 line = line.Trim();
                 if (File.Exists(line))
                 {
+                    // prevent it from infinite recursive
+                    if (visited.ContainsKey(line)) continue;
+                    visited[line] = line;
                     // read, add
                     LinkedList<String> anotherFile = null;
                     using (StreamReader fsAnother = new StreamReader(new BufferedStream(new FileStream(line, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))))
