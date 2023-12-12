@@ -179,6 +179,10 @@ namespace Utilities
             if (Data.ContainsKey(s))
             {
                 list = Data[s];
+                if(this.recordLoaded)
+                {
+                    this.NotLoaded[s] = true;
+                }
             }
             return list;
         }
@@ -466,6 +470,47 @@ namespace Utilities
                     if (OnSerializingMember != null)
                     {
                         OnSerializingMember(reader, OnSerializeArgs);
+                    }
+                }
+            }
+        }
+        
+        SequentialDictionary<String, bool> NotLoaded = new SequentialDictionary<string, bool>();
+        bool recordLoaded = false;
+        public List<String> GetNotLoaded()
+        {
+            List<String> ret = new List<string>();
+            foreach(String k in NotLoaded.Keys)
+            {
+                if(!NotLoaded[k])
+                {
+                    ret.Add(k);
+                }
+            }
+            return ret;
+        }
+        public bool RecordLoaded
+        {
+            get
+            {
+                return recordLoaded;
+            }
+            set
+            {
+                bool orig = recordLoaded;
+                recordLoaded = value;
+                if(orig != recordLoaded)
+                {
+                    if (recordLoaded)
+                    {
+                        foreach(String key in this.Data.Keys)
+                        {
+                            NotLoaded[key] = false;
+                        }
+                    }
+                    else
+                    {
+                        NotLoaded.Clear();
                     }
                 }
             }
