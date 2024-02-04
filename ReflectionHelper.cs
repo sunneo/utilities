@@ -119,7 +119,17 @@ namespace Utilities
         {
             this.Target = Target;
             Type type = this.Target.GetType();
-            foreach (MethodInfo member in type.GetMethods(BindingFlags.Public | BindingFlags.FlattenHierarchy| BindingFlags.Instance))
+            InitializeMembers(type, false);
+
+        }
+        protected virtual void InitializeMembers(Type type, bool isStatic)
+        {
+            BindingFlags flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Instance;
+            if(isStatic)
+            {
+                flags = BindingFlags.Public | BindingFlags.FlattenHierarchy | BindingFlags.Static;
+            }
+            foreach (MethodInfo member in type.GetMethods(flags))
             {
                 if (member.IsSpecialName) continue;
                 MethodCollectionHelper collection = null;
@@ -135,7 +145,12 @@ namespace Utilities
                 }
                 collection.List.Add(member);
             }
-            foreach (MethodInfo member in type.GetMethods(BindingFlags.NonPublic | BindingFlags.FlattenHierarchy | BindingFlags.Instance))
+            flags = BindingFlags.NonPublic | BindingFlags.FlattenHierarchy | BindingFlags.Instance;
+            if (isStatic)
+            {
+                flags = BindingFlags.NonPublic | BindingFlags.FlattenHierarchy | BindingFlags.Static;
+            }
+            foreach (MethodInfo member in type.GetMethods(flags))
             {
                 if (member.IsSpecialName) continue;
                 MethodCollectionHelper collection = null;
@@ -179,6 +194,12 @@ namespace Utilities
                     Member = member
                 };
             }
+        }
+        public ReflectionHelper(Type type)
+        {
+            this.Target = null;
+
+            InitializeMembers(type,true);
 
         }
     }

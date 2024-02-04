@@ -142,5 +142,17 @@ namespace Utilities
 			return this.seqKey;
 
 		}
-	}
+
+        public void MergeReplace(SequentialDictionary<K, V> mapData)
+        {
+            foreach(K key in mapData.Keys)
+            {
+                if (this.ContainsKey(key))
+                {
+					this.Remove(key);
+                }
+				this[key] = mapData[key];
+            }
+        }
+    }
 }

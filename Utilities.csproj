@@ -150,6 +150,7 @@
     <Compile Include="DataBase\SQLiteDBBuilder.cs" />
     <Compile Include="DataBase\TableToDatasetConverter.cs" />
     <Compile Include="Delegates.cs" />
+    <Compile Include="GenericDataSet.cs" />
     <Compile Include="Interfaces\ICancellable.cs" />
     <Compile Include="Coroutine\ProcessStatusMeasure.cs" />
     <Compile Include="Coroutine\Waiter\Client\IWaiter.cs" />

@@ -263,6 +263,14 @@ namespace Utilities.RPC
             }
             return -1;
         }
+        public double GetDouble(int idx)
+        {
+            if (idx < args.Count)
+            {
+                return (double)args[idx];
+            }
+            return -1;
+        }
         public bool TryGetArrayArg<T>(int idx, out T[] outArray)
         {
             if (idx < args.Count)
