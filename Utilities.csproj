@@ -211,6 +211,7 @@
     <Compile Include="StringCipher.cs" />
     <Compile Include="Sys\MotherboardInfo.cs" />
     <Compile Include="Tracer.cs" />
+    <Compile Include="UI\BitmapWrap.cs" />
     <Compile Include="UI\BorderLessButton.cs">
       <SubType>Component</SubType>
     </Compile>
