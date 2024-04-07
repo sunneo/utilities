@@ -1,5 +1,5 @@
 ﻿/*
-* Copyright (c) 2019-2020 [Open Source Developer, Sunneo].
+* Copyright (c) 2019-2024 [Open Source Developer, Sunneo].
 * All rights reserved.
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are met:

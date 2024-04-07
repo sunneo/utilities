@@ -8,6 +8,39 @@ namespace Utilities
 {
     public class GenericDataSet : SequentialDictionary<String, Object>
     {
+        public GenericDataSet()
+        {
+
+        }
+        public static GenericDataSet FromKeyValues(params Object[] objects)
+        {
+            return new GenericDataSet(objects);
+        }
+        public GenericDataSet(params Object[] objects)
+        {
+            LoadKeyValues(objects);
+        }
+        public virtual GenericDataSet LoadKeyValues(params Object[] objects)
+        {
+            for (int i = 0; i < objects.Length; i += 2)
+            {
+                try
+                {
+                    object key = objects[i];
+                    object val = objects[i + 1];
+                    if (!(key is String))
+                    {
+                        Set((String)key, val);
+                    }
+                }
+                catch (Exception ee)
+                {
+
+                }
+            }
+            return this;
+        }
+
         public void Set(String key,Object val)
         {
             this[key] = val;

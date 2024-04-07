@@ -31,6 +31,8 @@ namespace Utilities.RPC
     {
         event EventHandler<JsonRpcServerHandleEventArgs> OnHandleRPC;
         event EventHandler OnRequestHandled;
+        event EventHandler<JSONRPCError> OnError;
+        GenericDataSet Properties { get; }
         void Start();
         void Stop();
         bool IsAlive { get; }
@@ -125,7 +127,9 @@ namespace Utilities.RPC
             CoroutineHost Host = new CoroutineHost(100);
             Coroutine.Coroutine Cor;
             volatile bool IsRunning = false;
-
+            GenericDataSet mProperties = new GenericDataSet();
+            public GenericDataSet Properties { get => mProperties; }
+            public event EventHandler<JSONRPCError> OnError;
             public bool IsAlive => IsRunning;
             public event EventHandler OnRequestHandled;
 
@@ -147,7 +151,7 @@ namespace Utilities.RPC
                     while (IsRunning)
                     {
                         JsonRpcServerHandleEventArgs args = new JsonRpcServerHandleEventArgs();
-                        if (mRPC.TryGet(out args.Input))
+                        if (mRPC.TryGet(out args.Input, OnError))
                         {
                             OnHandleRPC(this, args);
                             mRPC.Send(args.Output);
@@ -199,15 +203,20 @@ namespace Utilities.RPC
             this.Reader = reader;
             this.Writer = writer;
         }
-        public bool TryGet<T>(out T output) where T : class
+        public bool TryGet<T>(out T output, EventHandler<JSONRPCError> OnErrorHandler=null) where T : class
         {
             String content = Reader.ReadLine();
             if (String.IsNullOrEmpty(content))
             {
                 output = null;
+                JSONRPCError err = new JSONRPCError() { Message = "Get Empty String" };
                 if (OnError != null)
                 {
-                    OnError(this, new JSONRPCError() { Message = "Get Empty String" });
+                    OnError(this, err);
+                }
+                if (OnErrorHandler != null)
+                {
+                    OnErrorHandler(this, err);
                 }
                 return false;
             }
@@ -218,9 +227,14 @@ namespace Utilities.RPC
             catch(Exception ee)
             {
                 output = null;
-                if(OnError != null)
+                JSONRPCError err = new JSONRPCError() { error = ee, Message = ee.Message };
+                if (OnError != null)
                 {
-                    OnError(this, new JSONRPCError() { error = ee, Message=ee.Message });
+                    OnError(this,err);
+                }
+                if (OnErrorHandler != null)
+                {
+                    OnErrorHandler(this, err);
                 }
             }
             return output != null;
