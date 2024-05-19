@@ -9,10 +9,19 @@ namespace Utilities.Coroutine
 {
     public class Cancellable : ICancellable
     {
+        private static long uid = -1;
+        public long ID = uid++;
+        volatile bool mCancellationPending;
         public bool CancellationPending
         {
-            get;
-            private set;
+            get
+            {
+                return mCancellationPending;
+            }
+            private set
+            {
+                mCancellationPending = value;
+            }
         }
         public void Cancel()
         {

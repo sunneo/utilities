@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Utilities.RPC
 {
@@ -54,12 +55,14 @@ namespace Utilities.RPC
                 lock (channelLocker)
                 {
                     mInvoking = true;
-                    mRPC.Send(msg);
-                    JSONRPCMessage ret = null;
-                    if (mRPC.TryGet(out ret))
+                    if (mRPC.Send(msg))
                     {
-                        mInvoking = false;
-                        return ret;
+                        JSONRPCMessage ret = null;
+                        if (mRPC.TryGet(true, out ret))
+                        {
+                            mInvoking = false;
+                            return ret;
+                        }
                     }
                     mInvoking = false;
                 }
@@ -197,57 +200,109 @@ namespace Utilities.RPC
         {
             return new ServerImpl(this);
         }
-
+        public void Dispose()
+        {
+            if (readerCancellable != null)
+            {
+                readerCancellable.Cancel();
+            }
+        }
+        volatile Coroutine.Cancellable readerCancellable = new Cancellable();
         public JSONRPC(TextReader reader, TextWriter writer)
         {
             this.Reader = reader;
             this.Writer = writer;
         }
-        public bool TryGet<T>(out T output, EventHandler<JSONRPCError> OnErrorHandler=null) where T : class
+        public bool TryGet<T>(out T output, EventHandler<JSONRPCError> OnErrorHandler = null) where T : class
         {
-            String content = Reader.ReadLine();
-            if (String.IsNullOrEmpty(content))
+            return TryGet(false, out output, OnErrorHandler);
+        }
+        public bool TryGet<T>(bool untilParsed,out T output, EventHandler<JSONRPCError> OnErrorHandler=null) where T : class
+        {
+            bool retry = true;
+            if (!untilParsed)
             {
-                output = null;
-                JSONRPCError err = new JSONRPCError() { Message = "Get Empty String" };
-                if (OnError != null)
+                retry = false;
+            }
+            do
+            {
+                //String content = Reader.ReadLine();
+                String content = "";
+                Var<String> varString = new Var<string>("");
+                Var<bool> done = new Var<bool>(false);
+                Coroutine.Cancellable readerCancellable = this.readerCancellable;
+                AsyncTask.QueueWorkingItem(() =>
                 {
-                    OnError(this, err);
-                }
-                if (OnErrorHandler != null)
+                    varString.Value = Reader.ReadLine();
+                    done.Value = true;
+                });
+                while (!readerCancellable.CancellationPending && !done.Value)
                 {
-                    OnErrorHandler(this, err);
+                    Thread.Sleep(16);
                 }
+                content = varString.Value;
+                if (String.IsNullOrEmpty(content))
+                {
+                    output = null;
+                    JSONRPCError err = new JSONRPCError() { Message = "Get Empty String" };
+                    if (OnError != null)
+                    {
+                        OnError(this, err);
+                    }
+                    if (OnErrorHandler != null)
+                    {
+                        OnErrorHandler(this, err);
+                    }
+                    return false;
+                }
+                try
+                {
+                    output = Utility.JSON.Deserialize<T>(content);
+                }
+                catch (Exception ee)
+                {
+                    output = null;
+                    JSONRPCError err = new JSONRPCError() { error = ee, Message = ee.Message };
+                    if (OnError != null)
+                    {
+                        OnError(this, err);
+                    }
+                    if (OnErrorHandler != null)
+                    {
+                        OnErrorHandler(this, err);
+                    }
+                }
+                if (untilParsed)
+                {
+                    if(output != null)
+                    {
+                        retry = false;
+                    }
+                }
+            } while (retry);
+            return output != null;
+        }
+        public bool Send(JSONRPCMessage msg)
+        {
+            if (readerCancellable.CancellationPending)
+            {
                 return false;
             }
             try
             {
-                output = Utility.JSON.Deserialize<T>(content);
+                Writer.WriteLine(Utility.JSON.Serialize(msg));
+                Writer.Flush();
             }
             catch(Exception ee)
             {
-                output = null;
-                JSONRPCError err = new JSONRPCError() { error = ee, Message = ee.Message };
-                if (OnError != null)
-                {
-                    OnError(this,err);
-                }
-                if (OnErrorHandler != null)
-                {
-                    OnErrorHandler(this, err);
-                }
+                return false;
             }
-            return output != null;
+            return true;
         }
-        public void Send(JSONRPCMessage msg)
-        {
-            Writer.WriteLine(Utility.JSON.Serialize(msg));
-            Writer.Flush();
-        }
-        public void Send(String name, params object[] args)
+        public bool Send(String name, params object[] args)
         {
             JSONRPCMessage msg = new JSONRPCMessage(name, args);
-            Send(msg);
+            return Send(msg);
         }
         public JSONRPCMessage Invoke(String name, params object[] args)
         {
