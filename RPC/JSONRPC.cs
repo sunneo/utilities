@@ -16,6 +16,25 @@ namespace Utilities.RPC
         public String Message;
         public Exception error;
     }
+    public interface ITracer
+    {
+        void Log(String fmt, params object[] param);
+    }
+    public class NullTracer : ITracer
+    {
+        public void Log(string fmt, params object[] param)
+        {
+            
+        }
+    }
+    public class StdErrorTracer : ITracer
+    {
+        public void Log(string fmt, params object[] param)
+        {
+            Console.Error.WriteLine(fmt, param);
+        }
+    }
+
     public interface IJsonRpcClient
     {
         bool IsInvoking { get; }
@@ -34,8 +53,8 @@ namespace Utilities.RPC
         event EventHandler OnRequestHandled;
         event EventHandler<JSONRPCError> OnError;
         GenericDataSet Properties { get; }
-        void Start();
-        void Stop();
+        void Start(bool thread=false);
+        void Stop(bool thread=false);
         bool IsAlive { get; }
     }
     
@@ -45,6 +64,26 @@ namespace Utilities.RPC
         TextReader Reader;
         TextWriter Writer;
         public event EventHandler<JSONRPCError> OnError;
+        public const bool DoLog = false;
+        protected static ITracer _tracer;
+        public static ITracer Tracer
+        {
+            get
+            {
+                if (_tracer == null)
+                {
+                    if (DoLog)
+                    {
+                        _tracer = new StdErrorTracer();
+                    }
+                    else
+                    {
+                        _tracer = new NullTracer();
+                    }
+                }
+                return _tracer;
+            }
+        }
         internal class ClientImpl : IJsonRpcClient
         {
             volatile bool mInvoking = false;
@@ -54,17 +93,29 @@ namespace Utilities.RPC
             {
                 lock (channelLocker)
                 {
-                    mInvoking = true;
-                    if (mRPC.Send(msg))
+                    bool retry = false;
+                    do
                     {
-                        JSONRPCMessage ret = null;
-                        if (mRPC.TryGet(true, out ret))
+                        retry = false;
+                        mInvoking = true;
+                        if (mRPC.Send(msg))
                         {
-                            mInvoking = false;
-                            return ret;
+                            JSONRPCMessage ret = null;
+                            int timeout = msg.timeoutMillis;
+                            bool isTimeout = false;
+                            if (mRPC.TryGet(true, timeout, out isTimeout, out ret))
+                            {
+                                mInvoking = false;
+                                return ret;
+                            }
+                            if (timeout > 0 && isTimeout)
+                            {
+                                retry = true;
+                            }
                         }
-                    }
-                    mInvoking = false;
+                        mInvoking = false;
+                    } while (retry);
+                    
                 }
                 return null;
             }
@@ -146,6 +197,34 @@ namespace Utilities.RPC
             {
                 mRPC = new JSONRPC(reader, writer);
             }
+            public void ThreadRunner()
+            {
+                IsRunning = true;
+                if (OnHandleRPC != null)
+                {
+                    while (IsRunning)
+                    {
+                        JsonRpcServerHandleEventArgs args = new JsonRpcServerHandleEventArgs();
+                        if (mRPC.TryGet(out args.Input, OnError))
+                        {
+                            OnHandleRPC(this, args);
+                            mRPC.Send(args.Output);
+                        }
+                        try
+                        {
+                            if (OnRequestHandled != null)
+                            {
+                                OnRequestHandled(this, EventArgs.Empty);
+                            }
+                        }
+                        catch (Exception ee)
+                        {
+                            Console.Error.WriteLine(ee.ToString());
+                        }
+                    }
+                }
+                IsRunning = false;
+            }
             IEnumerator Runner()
             {
                 IsRunning = true;
@@ -168,7 +247,7 @@ namespace Utilities.RPC
                         }
                         catch(Exception ee)
                         {
-
+                            Console.Error.WriteLine(ee.ToString());
                         }
                         yield return true;
                     }
@@ -176,8 +255,13 @@ namespace Utilities.RPC
                 IsRunning = false;
                 yield break;
             }
-            public void Start()
+            public void Start(bool thread = false)
             {
+                if(thread)
+                {
+                    StartThread();
+                    return;
+                }
                 if (Cor == null)
                 {
                     Cor = new Coroutine.Coroutine(50, this.Host);
@@ -185,11 +269,42 @@ namespace Utilities.RPC
                 Cor.QueueWorkingItem(Runner());
                 IsRunning = true;
             }
-            public void Stop()
+            protected Thread th;
+            public void StartThread()
             {
+                if (th == null || !th.IsAlive)
+                {
+                    th = new Thread(ThreadRunner);
+                }
+                th.Start();
+                IsRunning = true;
+            }
+            public void Stop(bool thread = false)
+            {
+                if (thread)
+                {
+                    StopThread();
+                    return;
+                }
                 IsRunning = false;
                 Cor.Dispose();
                 Host.Dispose();
+            }
+            public void StopThread()
+            {
+                IsRunning = false;
+                try
+                {
+                    if (this.th != null)
+                    {
+                        this.th.Interrupt();
+                        this.th.Abort();
+                    }
+                }
+                catch(Exception ee)
+                {
+                    Console.Error.WriteLine(ee.ToString());
+                }
             }
         }
         public IJsonRpcClient Client()
@@ -215,9 +330,10 @@ namespace Utilities.RPC
         }
         public bool TryGet<T>(out T output, EventHandler<JSONRPCError> OnErrorHandler = null) where T : class
         {
-            return TryGet(false, out output, OnErrorHandler);
+            bool dummyTimeout = false;
+            return TryGet(false, -1,out dummyTimeout, out output, OnErrorHandler);
         }
-        public bool TryGet<T>(bool untilParsed,out T output, EventHandler<JSONRPCError> OnErrorHandler=null) where T : class
+        public bool TryGet<T>(bool untilParsed,int timeoutMillis, out bool isTimeout,out T output, EventHandler<JSONRPCError> OnErrorHandler=null) where T : class
         {
             bool retry = true;
             if (!untilParsed)
@@ -231,13 +347,26 @@ namespace Utilities.RPC
                 Var<String> varString = new Var<string>("");
                 Var<bool> done = new Var<bool>(false);
                 Coroutine.Cancellable readerCancellable = this.readerCancellable;
-                AsyncTask.QueueWorkingItem(() =>
+                Thread th = new Thread(()=>
                 {
+                    Tracer.Log("[JSONRPC] Wait for String");
                     varString.Value = Reader.ReadLine();
+                    Tracer.Log("[JSONRPC] Wait for String, Get {0}",varString.Value);
                     done.Value = true;
                 });
+                th.Start();
+                DateTime dt = DateTime.Now;
                 while (!readerCancellable.CancellationPending && !done.Value)
                 {
+                    if(timeoutMillis > 0)
+                    {
+                        if(DateTime.Now.Subtract(dt).TotalMilliseconds >= timeoutMillis)
+                        {
+                            isTimeout = true;
+                            output = null;
+                            return false;
+                        }
+                    }
                     Thread.Sleep(16);
                 }
                 content = varString.Value;
@@ -253,6 +382,7 @@ namespace Utilities.RPC
                     {
                         OnErrorHandler(this, err);
                     }
+                    isTimeout = false;
                     return false;
                 }
                 try
@@ -280,21 +410,28 @@ namespace Utilities.RPC
                     }
                 }
             } while (retry);
+            isTimeout = false;
             return output != null;
         }
         public bool Send(JSONRPCMessage msg)
         {
+            String strmsg = Utility.JSON.Serialize(msg);
             if (readerCancellable.CancellationPending)
             {
+                Tracer.Log("[JSONRPC] When Sending {0}, but Cancelled", strmsg);
                 return false;
             }
             try
             {
-                Writer.WriteLine(Utility.JSON.Serialize(msg));
+                Tracer.Log("[JSONRPC] Sending {0}", strmsg);
+                Writer.WriteLine(strmsg);
                 Writer.Flush();
+                Tracer.Log("[JSONRPC] Sent {0}", strmsg);
             }
             catch(Exception ee)
             {
+                Tracer.Log("[JSONRPC] Send {0} failed", strmsg);
+                Console.Error.WriteLine(ee.ToString());
                 return false;
             }
             return true;
@@ -369,6 +506,8 @@ namespace Utilities.RPC
     }
     public class JSONRPCMessage<T> where T : class
     {
+        public bool isTimeout = false;
+        public int timeoutMillis = -1;
         public String jsonrpc = "2.0";
         public String id = "1";
         public String method = "";

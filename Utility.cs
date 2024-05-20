@@ -163,6 +163,11 @@ namespace Utilities
             info.RedirectStandardError = true;
             process.EnableRaisingEvents = true;
             process.Start();
+            process.ErrorDataReceived += (s, e) =>
+            {
+                Console.Error.WriteLine("[RunCommandLine][file={0}]:{1}", file, e.Data);
+            };
+            process.BeginErrorReadLine();
             return process;
         }
         public static int RunCommandLine(String file, String[] args, out String stdout, out String stderr)
