@@ -8,6 +8,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Threading;
+using System.Windows.Forms;
 
 namespace Utilities.RPC
 {
@@ -56,6 +57,8 @@ namespace Utilities.RPC
         void Start(bool thread=false);
         void Stop(bool thread=false);
         bool IsAlive { get; }
+
+        void DoEvent();
     }
     
 
@@ -197,6 +200,26 @@ namespace Utilities.RPC
             {
                 mRPC = new JSONRPC(reader, writer);
             }
+            public void DoEvent()
+            {
+                JsonRpcServerHandleEventArgs args = new JsonRpcServerHandleEventArgs();
+                if (mRPC.TryGet(out args.Input, OnError))
+                {
+                    OnHandleRPC(this, args);
+                    mRPC.Send(args.Output);
+                }
+                try
+                {
+                    if (OnRequestHandled != null)
+                    {
+                        OnRequestHandled(this, EventArgs.Empty);
+                    }
+                }
+                catch (Exception ee)
+                {
+                    Console.Error.WriteLine(ee.ToString());
+                }
+            }
             public void ThreadRunner()
             {
                 IsRunning = true;
@@ -204,23 +227,7 @@ namespace Utilities.RPC
                 {
                     while (IsRunning)
                     {
-                        JsonRpcServerHandleEventArgs args = new JsonRpcServerHandleEventArgs();
-                        if (mRPC.TryGet(out args.Input, OnError))
-                        {
-                            OnHandleRPC(this, args);
-                            mRPC.Send(args.Output);
-                        }
-                        try
-                        {
-                            if (OnRequestHandled != null)
-                            {
-                                OnRequestHandled(this, EventArgs.Empty);
-                            }
-                        }
-                        catch (Exception ee)
-                        {
-                            Console.Error.WriteLine(ee.ToString());
-                        }
+                        DoEvent();
                     }
                 }
                 IsRunning = false;
@@ -232,23 +239,7 @@ namespace Utilities.RPC
                 {
                     while (IsRunning)
                     {
-                        JsonRpcServerHandleEventArgs args = new JsonRpcServerHandleEventArgs();
-                        if (mRPC.TryGet(out args.Input, OnError))
-                        {
-                            OnHandleRPC(this, args);
-                            mRPC.Send(args.Output);
-                        }
-                        try
-                        {
-                            if (OnRequestHandled != null)
-                            {
-                                OnRequestHandled(this, EventArgs.Empty);
-                            }
-                        }
-                        catch(Exception ee)
-                        {
-                            Console.Error.WriteLine(ee.ToString());
-                        }
+                        DoEvent();
                         yield return true;
                     }
                 }
@@ -344,32 +335,41 @@ namespace Utilities.RPC
             {
                 //String content = Reader.ReadLine();
                 String content = "";
-                Var<String> varString = new Var<string>("");
-                Var<bool> done = new Var<bool>(false);
-                Coroutine.Cancellable readerCancellable = this.readerCancellable;
-                Thread th = new Thread(()=>
+                
+                if (timeoutMillis > 0)
                 {
-                    Tracer.Log("[JSONRPC] Wait for String");
-                    varString.Value = Reader.ReadLine();
-                    Tracer.Log("[JSONRPC] Wait for String, Get {0}",varString.Value);
-                    done.Value = true;
-                });
-                th.Start();
-                DateTime dt = DateTime.Now;
-                while (!readerCancellable.CancellationPending && !done.Value)
-                {
-                    if(timeoutMillis > 0)
+                    Var<String> varString = new Var<string>("");
+                    Var<bool> done = new Var<bool>(false);
+                    Coroutine.Cancellable readerCancellable = this.readerCancellable;
+                    Thread th = new Thread(() =>
                     {
-                        if(DateTime.Now.Subtract(dt).TotalMilliseconds >= timeoutMillis)
+                        Tracer.Log("[JSONRPC] Wait for String");
+                        varString.Value = Reader.ReadLine();
+                        Tracer.Log("[JSONRPC] Wait for String, Get {0}", varString.Value);
+                        done.Value = true;
+                    });
+                    th.Start();
+                    DateTime dt = DateTime.Now;
+                    while (!readerCancellable.CancellationPending && !done.Value)
+                    {
+                        if (timeoutMillis > 0)
                         {
-                            isTimeout = true;
-                            output = null;
-                            return false;
+                            if (DateTime.Now.Subtract(dt).TotalMilliseconds >= timeoutMillis)
+                            {
+                                isTimeout = true;
+                                output = null;
+                                return false;
+                            }
                         }
+                        Thread.Sleep(16);
                     }
-                    Thread.Sleep(16);
+                    content = varString.Value;
                 }
-                content = varString.Value;
+                else
+                {
+                    content = Reader.ReadLine();
+                }
+                
                 if (String.IsNullOrEmpty(content))
                 {
                     output = null;
@@ -458,8 +458,17 @@ namespace Utilities.RPC
         {
             if (args != null && args.Length > 0)
             {
+                this.args = new List<object>();
                 this.args.AddRange(args);
             }
+        }
+        public long GetLong(int idx)
+        {
+            if (idx < args.Count)
+            {
+                return (long)(Int64)args[idx];
+            }
+            return -1;
         }
         public int GetInt(int idx)
         {

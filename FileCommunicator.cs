@@ -35,6 +35,7 @@ using System.Threading.Tasks;
 using Utilities.Coroutine.Waiter.Server;
 using Utilities;
 using Utilities.Coroutine.Waiter.Client;
+using Utilities.Coroutine;
 
 namespace Utilities
 {
@@ -79,6 +80,14 @@ namespace Utilities
         /// on text content inputed
         /// </summary>
         public event EventHandler<String> OnTextInputed;
+        /// <summary>
+        /// text content inputed with full path
+        /// <code>
+        /// keyvalue
+        ///    key: text content
+        ///    value: full path
+        /// </code>
+        /// </summary>
         public event EventHandler<KeyValuePair<String, String>> OnTextInputedWithPath;
         /// <summary>
         /// on binary inputed
@@ -348,19 +357,111 @@ namespace Utilities
             WriteTo(String.Format(fmt, param));
         }
         #endregion
-
-
-        public void Start()
+        Coroutine.Cancellable cancellation = new Cancellable();
+        volatile bool fileScannerRunning = false;
+        protected virtual void ThreadBody()
         {
+            try
+            {
+                Coroutine.Cancellable cancellation = this.cancellation;
+                bool threadstartedInvoked = false;
+                while (cancellation != null && !cancellation.CancellationPending)
+                {
+                    try
+                    {
+                        if (OnThreadStarted != null)
+                        {
+                            if (!threadstartedInvoked)
+                            {
+                                threadstartedInvoked = true;
+                                OnThreadStarted();
+                            }
+                        }
+                        WaitForChangedResult res = watcher.WaitForChanged(WatcherChangeTypes.Changed | WatcherChangeTypes.Created, 100);
+                        if (res.TimedOut)
+                        {
+                            // Console.Error.WriteLine("FileCommunicator: Timeout");
+                            if (watcher != null)
+                            {
+                                fileScannerRunning = true;
+                                try
+                                {
+                                    String[] files = Directory.GetFiles(watcher.Path);
+                                    if (files != null && files.Length > 0)
+                                    {
+                                        for (int i = 0; i < files.Length; ++i)
+                                        {
+                                            //Console.Error.WriteLine("FileCommunicator: from {0} / {1}", files[i], WatcherChangeTypes.Created);
+                                            watcher_Changed(this, new FileSystemEventArgs(WatcherChangeTypes.Created, watcher.Path, Path.GetFileName(files[i])));
+                                        }
+                                    }
+                                }
+                                catch (Exception ee)
+                                {
+                                    Console.Error.WriteLine(ee.ToString());
+                                }
+                                fileScannerRunning = false;
+                            }
+                            continue;
+                        }
+                        if (fileScannerRunning)
+                        {
+                            continue;
+                        }
+                        // Console.Error.WriteLine("FileCommunicator: from {0} / {1}",res.Name,res.ChangeType);
+                        watcher_Changed(this, new FileSystemEventArgs(res.ChangeType, watcher.Path, res.Name));
+
+                    }
+                    catch (Exception ee)
+                    {
+
+                    }
+                }
+            }
+            catch(Exception ee)
+            {
+
+            }
+        }
+        volatile Action OnThreadStarted;
+        public void StartThread(Action OnThreadStarted=null)
+        {
+            this.OnThreadStarted = OnThreadStarted;
             if (watcher == null)
             {
                 watcher = new FileSystemWatcher(GetInputFolder());
                 watcher.BeginInit();
                 watcher.NotifyFilter = NotifyFilters.Attributes | NotifyFilters.LastWrite;
-                watcher.Changed += watcher_Changed;
-                watcher.Created += watcher_Changed;
-                watcher.EnableRaisingEvents = true;
                 watcher.EndInit();
+            }
+            new AsyncTask(ThreadBody).Start(false);
+        }
+        public void StopThread()
+        {
+            if (cancellation != null)
+            {
+                cancellation.Cancel();
+            }
+            cancellation = new Cancellable();
+        }
+        public void Start()
+        {
+            try
+            {
+                if (watcher == null)
+                {
+                    watcher = new FileSystemWatcher(GetInputFolder());
+                    watcher.BeginInit();
+                    watcher.NotifyFilter = NotifyFilters.Attributes | NotifyFilters.LastWrite;
+                    watcher.Changed += watcher_Changed;
+                    watcher.Created += watcher_Changed;
+                    watcher.EnableRaisingEvents = true;
+                    watcher.EndInit();
+                }
+            }
+            catch(Exception ee)
+            {
+                Console.Error.WriteLine(ee.ToString());
             }
         }
 
