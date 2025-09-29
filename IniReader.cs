@@ -272,19 +272,58 @@ namespace Utilities
                     {
                         if (fieldType == typeof(int))
                         {
-                            int val = reader.GetInt(name);
+                            int intdefval = 0;
+                            try
+                            {
+                                object intobj = field.GetValue(ret); ;
+                                if (intobj != null)
+                                {
+                                    intdefval = (int)intobj;
+                                }
+                            }
+                            catch (Exception ee)
+                            {
+
+                            }
+                            int val = reader.GetInt(name, intdefval);
                             field.SetValue(ret, val);
                             FieldValue = val;
                         }
                         else if (fieldType == typeof(bool))
                         {
-                            bool val = reader.GetBoolean(name);
+                            bool bdefval = false;
+                            try
+                            {
+                                object boolobj = field.GetValue(ret);
+                                if (boolobj != null)
+                                {
+                                    bdefval = (bool)boolobj;
+                                }
+                            }
+                            catch (Exception ee)
+                            {
+
+                            }
+                            bool val = reader.GetBoolean(name, bdefval);
                             field.SetValue(ret, val);
                             FieldValue = val;
                         }
                         else if (fieldType == typeof(double))
                         {
-                            double val = reader.GetDouble(name);
+                            double dbldefval = 0.0;
+                            try
+                            {
+                                object dblobj = field.GetValue(ret);
+                                if (dblobj != null)
+                                {
+                                    dbldefval = (double)dblobj;
+                                }
+                            }
+                            catch (Exception ee)
+                            {
+
+                            }
+                            double val = reader.GetDouble(name, dbldefval);
                             field.SetValue(ret, val);
                             FieldValue = val;
                         }
@@ -305,7 +344,20 @@ namespace Utilities
                     }
                     else if (fieldType == typeof(string))
                     {
-                        object val = reader.GetString(name);
+                        String defval = "";
+                        try
+                        {
+                            object strobj = field.GetValue(ret);
+                            if (strobj != null)
+                            {
+                                defval = (String)strobj;
+                            }
+                        }
+                        catch(Exception ee)
+                        {
+
+                        }
+                        object val = reader.GetString(name,defval);
                         field.SetValue(ret, val);
                         FieldValue = val;
                     }
