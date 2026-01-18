@@ -36,20 +36,27 @@ namespace Utilities
         int bucketSize = 16;
         object locker = new object();
         public event EventHandler<type> OnErasing;
+        
+        private class LRUNode
+        {
+            public type Value;
+            public LinkedListNode<key> Node;
+        }
+        
         public LRUDictionary(int bucketSize = 16)
         {
             this.bucketSize = bucketSize;
         }
-        Dictionary<key, LinkedListNode<key>> dictionary = new Dictionary<key, LinkedListNode<key>>();
-        Dictionary<key, type> valueDict = new Dictionary<key, type>();
+        
+        Dictionary<key, LRUNode> dictionary = new Dictionary<key, LRUNode>();
         LinkedList<key> LRUList = new LinkedList<key>();
         
         public void Clear()
         {
             dictionary.Clear();
-            valueDict.Clear();
             LRUList.Clear();
         }
+        
         public bool ContainsKey(key word)
         {
             lock (locker)
@@ -57,24 +64,26 @@ namespace Utilities
                 return dictionary.ContainsKey(word);
             }
         }
+        
         public type Get(key word)
         {
             lock (locker)
             {
                 if (dictionary.ContainsKey(word))
                 {
+                    LRUNode node = dictionary[word];
                     // Move to front (most recently used)
-                    LinkedListNode<key> node = dictionary[word];
-                    if (node != LRUList.First)
+                    if (node.Node != LRUList.First)
                     {
-                        LRUList.Remove(node);
-                        LRUList.AddFirst(node);
+                        LRUList.Remove(node.Node);
+                        LRUList.AddFirst(node.Node);
                     }
-                    return valueDict[word];
+                    return node.Value;
                 }
                 return default(type);
             }
         }
+        
         public void Put(key word, type lstSuggestions) // add or replace
         {
             lock (locker)
@@ -82,10 +91,14 @@ namespace Utilities
                 if (dictionary.ContainsKey(word))
                 {
                     // Update existing entry
-                    LinkedListNode<key> node = dictionary[word];
-                    LRUList.Remove(node);
-                    LRUList.AddFirst(node);
-                    valueDict[word] = lstSuggestions;
+                    LRUNode existingNode = dictionary[word];
+                    existingNode.Value = lstSuggestions;
+                    // Move to front
+                    if (existingNode.Node != LRUList.First)
+                    {
+                        LRUList.Remove(existingNode.Node);
+                        LRUList.AddFirst(existingNode.Node);
+                    }
                 }
                 else
                 {
@@ -94,12 +107,11 @@ namespace Utilities
                     {
                         key victim = LRUList.Last.Value;
                         LRUList.RemoveLast();
-                        dictionary.Remove(victim);
                         
-                        if (victim != null)
+                        if (victim != null && dictionary.ContainsKey(victim))
                         {
-                            type victimVal = valueDict[victim];
-                            valueDict.Remove(victim);
+                            type victimVal = dictionary[victim].Value;
+                            dictionary.Remove(victim);
                             if (OnErasing != null)
                             {
                                 OnErasing(this, victimVal);
@@ -107,10 +119,8 @@ namespace Utilities
                         }
                     }
                     // Add new entry
-                    LinkedListNode<key> newNode = new LinkedListNode<key>(word);
-                    LRUList.AddFirst(newNode);
-                    dictionary[word] = newNode;
-                    valueDict[word] = lstSuggestions;
+                    LinkedListNode<key> newNode = LRUList.AddFirst(word);
+                    dictionary[word] = new LRUNode { Value = lstSuggestions, Node = newNode };
                 }
             }
         }

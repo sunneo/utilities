@@ -121,8 +121,7 @@ namespace Utilities.Server
         private void HandleConnection(MediaConnectionInstance sck)
         {
             bool autoClose = AutoClose;
-            EventHandler disposedHandler = null;
-            disposedHandler = (sender, e) => sck_Disposed(sender, e);
+            EventHandler disposedHandler = sck_Disposed;
             sck.Disposed += disposedHandler;
             
             AsyncTask task = new AsyncTask(() => {

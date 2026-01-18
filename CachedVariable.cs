@@ -98,10 +98,10 @@ namespace Utilities
                 else
                 {
                     // Try as field or property
-                    infos = TargetType.GetMember(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | BindingFlags.Instance);
-                    if (infos != null && infos.Length > 0)
+                    MemberInfo[] memberInfos = TargetType.GetMember(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | BindingFlags.Instance);
+                    if (memberInfos != null && memberInfos.Length > 0)
                     {
-                        mMemberInfo = infos[0];
+                        mMemberInfo = memberInfos[0];
                         if (mMemberInfo is System.Reflection.PropertyInfo)
                         {
                             mIsProperty = true;
