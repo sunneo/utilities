@@ -108,14 +108,12 @@ namespace Utilities
                         key victim = LRUList.Last.Value;
                         LRUList.RemoveLast();
                         
-                        if (victim != null && dictionary.ContainsKey(victim))
+                        // Victim is guaranteed to be in dictionary since it came from LRUList
+                        type victimVal = dictionary[victim].Value;
+                        dictionary.Remove(victim);
+                        if (OnErasing != null)
                         {
-                            type victimVal = dictionary[victim].Value;
-                            dictionary.Remove(victim);
-                            if (OnErasing != null)
-                            {
-                                OnErasing(this, victimVal);
-                            }
+                            OnErasing(this, victimVal);
                         }
                     }
                     // Add new entry

@@ -91,7 +91,8 @@ namespace Utilities.Server
             }
             catch (Exception ee)
             {
-
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during Writer disposal: " + ee.Message);
             }
             try
             {
@@ -103,7 +104,8 @@ namespace Utilities.Server
             }
             catch (Exception ee)
             {
-
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during Reader disposal: " + ee.Message);
             }
             try
             {
@@ -115,7 +117,8 @@ namespace Utilities.Server
             }
             catch (Exception ee)
             {
-
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during BufferedStream disposal: " + ee.Message);
             }
             try
             {
@@ -127,7 +130,8 @@ namespace Utilities.Server
             }
             catch (Exception ee)
             {
-
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during Socket disposal: " + ee.Message);
             }
             IsDisposed = true;
             if (Disposed != null)

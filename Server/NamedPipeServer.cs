@@ -14,6 +14,11 @@ namespace Utilities.Server
     {
         public String Name;
         private System.Threading.Thread Task;
+        /// <summary>
+        /// Timeout in seconds to wait for graceful thread shutdown. Default is 5 seconds.
+        /// </summary>
+        public int StopTimeoutSeconds = 5;
+        
         public NamedPipeServer(String name)
         {
             this.Name = name;
@@ -141,10 +146,10 @@ namespace Utilities.Server
                 // Wait for graceful shutdown instead of using Thread.Abort()
                 if (Task != null && Task.IsAlive)
                 {
-                    if (!Task.Join(TimeSpan.FromSeconds(5)))
+                    if (!Task.Join(TimeSpan.FromSeconds(StopTimeoutSeconds)))
                     {
                         // Thread didn't stop gracefully, but we've done what we can
-                        Console.WriteLine("NamedPipeServer thread did not stop within timeout");
+                        Console.WriteLine("NamedPipeServer thread did not stop within {0} second timeout", StopTimeoutSeconds);
                     }
                     Task = null;
                 }
