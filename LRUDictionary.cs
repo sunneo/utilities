@@ -36,104 +36,93 @@ namespace Utilities
         int bucketSize = 16;
         object locker = new object();
         public event EventHandler<type> OnErasing;
+        
+        private class LRUNode
+        {
+            public type Value;
+            public LinkedListNode<key> Node;
+        }
+        
         public LRUDictionary(int bucketSize = 16)
         {
             this.bucketSize = bucketSize;
         }
-        Dictionary<key, type> dictionary = new Dictionary<key, type>();
-        List<key> LRUStringList = new List<key>();
+        
+        Dictionary<key, LRUNode> dictionary = new Dictionary<key, LRUNode>();
+        LinkedList<key> LRUList = new LinkedList<key>();
+        
         public void Clear()
         {
             dictionary.Clear();
-            LRUStringList.Clear();
+            LRUList.Clear();
         }
+        
         public bool ContainsKey(key word)
         {
             lock (locker)
             {
-                if (dictionary.ContainsKey(word))
-                {
-                    int foundIdx = -1;
-                    for (int i = 0; i < LRUStringList.Count; ++i)
-                    {
-                        if (LRUStringList[i].Equals(word))
-                        {
-                            foundIdx = i;
-                            break;
-                        }
-                    }
-                    return foundIdx != -1;
-                }
-                else
-                {
-                    return false;
-                }
+                return dictionary.ContainsKey(word);
             }
         }
+        
         public type Get(key word)
         {
             lock (locker)
             {
                 if (dictionary.ContainsKey(word))
                 {
-                    int foundIdx = -1;
-                    for (int i = 0; i < LRUStringList.Count; ++i)
+                    LRUNode node = dictionary[word];
+                    // Move to front (most recently used)
+                    if (node.Node != LRUList.First)
                     {
-                        if (LRUStringList[i].Equals(word))
-                        {
-                            foundIdx = i;
-                            break;
-                        }
+                        LRUList.Remove(node.Node);
+                        LRUList.AddFirst(node.Node);
                     }
-                    if (foundIdx != -1 && foundIdx > 0)
-                    {
-                        LRUStringList.RemoveAt(foundIdx);
-                        LRUStringList.Insert(0, word);
-                    }
-                    return dictionary[word];
+                    return node.Value;
                 }
                 return default(type);
             }
         }
+        
         public void Put(key word, type lstSuggestions) // add or replace
         {
             lock (locker)
             {
-                if (LRUStringList.Count >= bucketSize)
-                {
-                    key victim = LRUStringList[LRUStringList.Count - 1];
-
-                    LRUStringList.RemoveAt(LRUStringList.Count - 1);
-                    LRUStringList.Insert(0, word);
-                    if (victim != null)
-                    {
-                        type victimVal = dictionary[victim];
-                        dictionary.Remove(victim);
-                        if (OnErasing != null)
-                        {
-                            OnErasing(this, victimVal);
-                        }
-                    }
-                }
                 if (dictionary.ContainsKey(word))
                 {
-                    int foundIdx = -1;
-                    for (int i = 0; i < LRUStringList.Count; ++i)
+                    // Update existing entry
+                    LRUNode existingNode = dictionary[word];
+                    existingNode.Value = lstSuggestions;
+                    // Move to front
+                    if (existingNode.Node != LRUList.First)
                     {
-                        if (LRUStringList[i].Equals(word))
-                        {
-                            foundIdx = i;
-                            break;
-                        }
-                    }
-                    if (foundIdx != -1 && foundIdx > 0)
-                    {
-                        LRUStringList.RemoveAt(foundIdx);
-                        dictionary.Remove(word);
+                        LRUList.Remove(existingNode.Node);
+                        LRUList.AddFirst(existingNode.Node);
                     }
                 }
-                LRUStringList.Insert(0, word);
-                dictionary[word] = lstSuggestions;
+                else
+                {
+                    // Check if we need to evict
+                    if (LRUList.Count >= bucketSize)
+                    {
+                        key victim = LRUList.Last.Value;
+                        LRUList.RemoveLast();
+                        
+                        // Victim should always be in dictionary, but check defensively
+                        if (dictionary.ContainsKey(victim))
+                        {
+                            type victimVal = dictionary[victim].Value;
+                            dictionary.Remove(victim);
+                            if (OnErasing != null)
+                            {
+                                OnErasing(this, victimVal);
+                            }
+                        }
+                    }
+                    // Add new entry
+                    LinkedListNode<key> newNode = LRUList.AddFirst(word);
+                    dictionary[word] = new LRUNode { Value = lstSuggestions, Node = newNode };
+                }
             }
         }
     }

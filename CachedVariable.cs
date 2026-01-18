@@ -80,15 +80,16 @@ namespace Utilities
             Type TargetType = syncTarget.GetType();
             this.mSyncTarget = syncTarget;
 
-            MemberInfo[] infos = null;
-            infos = TargetType.GetMember("set_" + fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | BindingFlags.Instance);
-            if (infos.Length > 0)
+            // Try to find setter method first
+            MemberInfo[] infos = TargetType.GetMember("set_" + fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | BindingFlags.Instance);
+            if (infos != null && infos.Length > 0)
             {
                 mMemberInfo = infos[0];
                 mIsSetter = true;
             }
             else
             {
+                // Try as method
                 mMemberInfo = TargetType.GetMethod("set_" + fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | BindingFlags.Instance);
                 if (mMemberInfo != null)
                 {
@@ -96,10 +97,11 @@ namespace Utilities
                 }
                 else
                 {
-                    TargetType.GetMember(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | BindingFlags.Instance);
-                    if (infos.Length > 0)
+                    // Try as field or property
+                    MemberInfo[] memberInfos = TargetType.GetMember(fieldName, System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public | BindingFlags.Instance);
+                    if (memberInfos != null && memberInfos.Length > 0)
                     {
-                        mMemberInfo = infos[0];
+                        mMemberInfo = memberInfos[0];
                         if (mMemberInfo is System.Reflection.PropertyInfo)
                         {
                             mIsProperty = true;

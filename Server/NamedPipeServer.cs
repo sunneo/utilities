@@ -14,6 +14,11 @@ namespace Utilities.Server
     {
         public String Name;
         private System.Threading.Thread Task;
+        /// <summary>
+        /// Timeout in seconds to wait for graceful thread shutdown. Default is 5 seconds.
+        /// </summary>
+        public int StopTimeoutSeconds = 5;
+        
         public NamedPipeServer(String name)
         {
             this.Name = name;
@@ -60,33 +65,35 @@ namespace Utilities.Server
                     }
                     server.WaitForConnection();
 
-                    StreamReader reader = new StreamReader(server);
-                    StreamWriter writer = new StreamWriter(server);
-                    try
+                    using (StreamReader reader = new StreamReader(server, Encoding.UTF8, true, 1024, true))
+                    using (StreamWriter writer = new StreamWriter(server, Encoding.UTF8, 1024, true))
                     {
-                        while (true)
+                        try
                         {
-                            if (Connected != null)
+                            while (true)
                             {
-                                Connected(this, new Tuple<StreamReader, StreamWriter>(reader, writer));
+                                if (Connected != null)
+                                {
+                                    Connected(this, new Tuple<StreamReader, StreamWriter>(reader, writer));
+                                }
+                                if (!server.IsConnected)
+                                {
+                                    server.Dispose();
+                                    server = null;
+                                    break;
+                                }
+                                server.WaitForPipeDrain();
                             }
-                            if (!server.IsConnected)
+                        }
+                        catch (IOException ee)
+                        {
+                            if (server != null)
                             {
                                 server.Dispose();
                                 server = null;
-                                break;
                             }
-                            server.WaitForPipeDrain();
+                            Console.WriteLine(ee.ToString());
                         }
-                    }
-                    catch (IOException ee)
-                    {
-                        if (server != null)
-                        {
-                            server.Dispose();
-                            server = null;
-                        }
-                        Console.WriteLine(ee.ToString());
                     }
                     if (CancellationTokenSource.IsCancellationRequested)
                     {
@@ -132,19 +139,24 @@ namespace Utilities.Server
         {
             try
             {
-                if (Task != null && CancellationTokenSource != null)
+                if (CancellationTokenSource != null)
                 {
                     CancellationTokenSource.Cancel();
                 }
-                if (Task != null)
+                // Wait for graceful shutdown instead of using Thread.Abort()
+                if (Task != null && Task.IsAlive)
                 {
-                    Task.Abort();
+                    if (!Task.Join(TimeSpan.FromSeconds(StopTimeoutSeconds)))
+                    {
+                        // Thread didn't stop gracefully, but we've done what we can
+                        Console.WriteLine("NamedPipeServer thread did not stop within {0} second timeout", StopTimeoutSeconds);
+                    }
                     Task = null;
                 }
             }
             catch (Exception ee)
             {
-
+                Console.WriteLine(ee.ToString());
             }
         }
     }

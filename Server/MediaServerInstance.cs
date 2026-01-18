@@ -47,15 +47,19 @@ namespace Utilities.Server
         {
             return Attributes.GetAttributeString(key).ToString();
         }
+        BufferedStream mBufferedStream;
+        
         public MediaConnectionInstance(Socket sck)
         {
             this.RawConnection = sck;
             this.IPAddress = (sck.RemoteEndPoint as System.Net.IPEndPoint).Address.ToString();
-            NetworkStream mStream = new NetworkStream(sck,true);
-            BufferedStream writerBuffer = new BufferedStream(mStream);
-            BufferedStream readerBuffer = new BufferedStream(mStream);
-            this.Writer = new BinaryWriter(writerBuffer);
-            this.Reader = new BinaryReader(readerBuffer);
+            NetworkStream mStream = new NetworkStream(sck, true);
+            // Use single BufferedStream to avoid double-disposal issue
+            mBufferedStream = new BufferedStream(mStream);
+            // Both reader and writer use leaveOpen=true so they don't dispose the BufferedStream
+            // We'll dispose the BufferedStream explicitly in Dispose()
+            this.Writer = new BinaryWriter(mBufferedStream, Encoding.UTF8, true);
+            this.Reader = new BinaryReader(mBufferedStream, Encoding.UTF8, true);
         }
         public static MediaConnectionInstance New(String ip, int port)
         {
@@ -87,7 +91,8 @@ namespace Utilities.Server
             }
             catch (Exception ee)
             {
-
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during Writer disposal: " + ee.Message);
             }
             try
             {
@@ -99,7 +104,21 @@ namespace Utilities.Server
             }
             catch (Exception ee)
             {
-
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during Reader disposal: " + ee.Message);
+            }
+            try
+            {
+                if (mBufferedStream != null)
+                {
+                    mBufferedStream.Dispose();
+                    mBufferedStream = null;
+                }
+            }
+            catch (Exception ee)
+            {
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during BufferedStream disposal: " + ee.Message);
             }
             try
             {
@@ -111,7 +130,8 @@ namespace Utilities.Server
             }
             catch (Exception ee)
             {
-
+                // Ignore exceptions during disposal to prevent further issues
+                Console.WriteLine("Warning: Exception during Socket disposal: " + ee.Message);
             }
             IsDisposed = true;
             if (Disposed != null)
