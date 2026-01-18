@@ -685,7 +685,7 @@ namespace Utilities
             task.Start(false);
             return continueItem;
         }
-        volatile bool IsDisposed = false;
+        public volatile bool IsDisposed = false;
         ~AsyncTask()
         {
             if (!IsDisposed)
