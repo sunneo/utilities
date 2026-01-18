@@ -23,10 +23,11 @@ namespace Utilities.Excel
         ExcelImporter(String filename)
         {
             byte[] filecontent = null;
-            FileStream fstream = new FileStream(filename, FileMode.Open, FileAccess.Read);
-            filecontent = new byte[fstream.Length];
-            fstream.Read(filecontent, 0, filecontent.Length);
-            fstream.Close();
+            using (FileStream fstream = new FileStream(filename, FileMode.Open, FileAccess.Read))
+            {
+                filecontent = new byte[fstream.Length];
+                fstream.Read(filecontent, 0, filecontent.Length);
+            }
             MemoryStream ms = new MemoryStream(filecontent);
             pkg = FromStream(ms);
             this.currentSheet = GetSheetByIndex(1);

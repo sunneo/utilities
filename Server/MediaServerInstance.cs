@@ -51,11 +51,11 @@ namespace Utilities.Server
         {
             this.RawConnection = sck;
             this.IPAddress = (sck.RemoteEndPoint as System.Net.IPEndPoint).Address.ToString();
-            NetworkStream mStream = new NetworkStream(sck,true);
-            BufferedStream writerBuffer = new BufferedStream(mStream);
-            BufferedStream readerBuffer = new BufferedStream(mStream);
-            this.Writer = new BinaryWriter(writerBuffer);
-            this.Reader = new BinaryReader(readerBuffer);
+            NetworkStream mStream = new NetworkStream(sck, true);
+            // Use single BufferedStream to avoid double-disposal issue
+            BufferedStream buffer = new BufferedStream(mStream);
+            this.Writer = new BinaryWriter(buffer, Encoding.UTF8, true);
+            this.Reader = new BinaryReader(buffer, Encoding.UTF8, true);
         }
         public static MediaConnectionInstance New(String ip, int port)
         {

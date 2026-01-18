@@ -533,6 +533,10 @@ namespace Utilities
 
         public void Dispose()
         {
+            if (IsDisposed)
+            {
+                return;
+            }
             if (!RunningDisposeAfterFinish)
             {
                 StopAsync();
@@ -541,6 +545,8 @@ namespace Utilities
             IsFault = false;
             ownedJob = null;
             CallerInfo = null;
+            IsDisposed = true;
+            GC.SuppressFinalize(this);
         }
         public void ClearJob()
         {

@@ -121,7 +121,10 @@ namespace Utilities.Server
         private void HandleConnection(MediaConnectionInstance sck)
         {
             bool autoClose = AutoClose;
-            sck.Disposed += sck_Disposed;
+            EventHandler disposedHandler = null;
+            disposedHandler = (sender, e) => sck_Disposed(sender, e);
+            sck.Disposed += disposedHandler;
+            
             AsyncTask task = new AsyncTask(() => {
                 if (OnHandleConnection != null)
                 {
@@ -135,6 +138,11 @@ namespace Utilities.Server
                 {
                     try
                     {
+                        // Unsubscribe event handler to prevent memory leak
+                        if (disposedHandler != null)
+                        {
+                            sck.Disposed -= disposedHandler;
+                        }
                         //Console.WriteLine("Disconnect {0} (PID:{1}) (Second Connection?{2})", sck.IPAddress, sck.Attributes.GetAttributeInt("PID"), sck.Attributes.GetAttributeBool("IsSecondConnection"));
                         if (sck.RawConnection != null)
                         {
@@ -155,6 +163,7 @@ namespace Utilities.Server
                         OnServerRemoved(this, new OnHandleConnectionEventArgs(this, sck));
                     }
                 });
+                task.DisposeAfterFinish = true;
             }
             task.Start(false);
         }

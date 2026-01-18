@@ -19,6 +19,8 @@ namespace Utilities
                     if (Disposed != null)
                     {
                         Disposed(this, EventArgs.Empty);
+                        // Clear event handlers to prevent memory leaks
+                        Disposed = null;
                     }
                 }
                 catch (Exception ee)
@@ -26,6 +28,7 @@ namespace Utilities
 
                 }
                 IsDisposed = true;
+                GC.SuppressFinalize(this);
             }
         }
         public DisposableWrapper(Action action)
