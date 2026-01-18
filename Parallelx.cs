@@ -16,6 +16,26 @@ namespace Utilities
             Cyclic = 1,
             RuntimeLoadBalance = 2
         }
+        
+        /// <summary>
+        /// Helper method to dispose a list of AsyncTask objects
+        /// Call this after parallel operations complete to free resources
+        /// </summary>
+        /// <param name="tasks">List of tasks to dispose</param>
+        public static void DisposeTasks(List<AsyncTask> tasks)
+        {
+            if (tasks != null)
+            {
+                foreach (var task in tasks)
+                {
+                    if (task != null && !task.IsDisposed)
+                    {
+                        task.Dispose();
+                    }
+                }
+            }
+        }
+        
         private void WaitForAsyncTasks(List<AsyncTask> tasks, bool wait)
         {
             if (wait)
